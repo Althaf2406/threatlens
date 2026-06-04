@@ -15,7 +15,7 @@ export default function DashboardPage() {
   let totalHighRisk = 0;
   let totalFixed = 0;
   
-  const allFindings = [];
+  const allFindings: any[] = [];
 
   for (const project of projects) {
     const pFindings = getFindingsByProjectId(project.id);
