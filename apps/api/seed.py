@@ -21,48 +21,57 @@ from app.models.detection_rule import DetectionRule
 from app.core.security import get_password_hash
 
 def seed():
+    Base.metadata.drop_all(bind=engine) # Drop all to cleanly re-seed for the auth phase
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
     try:
-        # Check if seeded
-        if db.query(User).first():
-            print("Database already seeded!")
-            return
-
         print("Seeding database...")
 
         # 1. User
         demo_user = User(
-            id="usr-001",
-            name="Investigator Admin",
-            email="admin@threatlens.local",
+            id="usr-demo",
+            name="Demo User",
+            email="demo@threatlens.local",
             hashed_password=get_password_hash("password123"),
-            role="admin",
+            role="user",
             plan_name="pro",
             project_limit=5,
             token_limit=10000
         )
-        db.add(demo_user)
+        admin_user = User(
+            id="usr-admin",
+            name="Investigator Admin",
+            email="admin@threatlens.local",
+            hashed_password=get_password_hash("admin123"),
+            role="admin",
+            plan_name="pro",
+            project_limit=10,
+            token_limit=50000
+        )
+        db.add_all([demo_user, admin_user])
         db.flush()
 
         # 2. Projects
         proj_1 = Project(id="proj-001", user_id=demo_user.id, name="Demo Web App", environment="Staging", risk_level="High", posture_score=76)
         proj_2 = Project(id="proj-002", user_id=demo_user.id, name="Public API Service", environment="Demo", risk_level="Medium", posture_score=85)
         proj_3 = Project(id="proj-003", user_id=demo_user.id, name="Student Portfolio App", environment="Lab", risk_level="Low", posture_score=95)
-        db.add_all([proj_1, proj_2, proj_3])
+        proj_4 = Project(id="proj-004", user_id=admin_user.id, name="Admin Confidential API", environment="Production", risk_level="Medium", posture_score=88)
+        db.add_all([proj_1, proj_2, proj_3, proj_4])
         db.flush()
 
         # 3. Assets
         asset_1 = Asset(id="ast-001", project_id=proj_1.id, name="Main Website", type="Website URL", value="https://demo.threatlens.local")
         asset_2 = Asset(id="ast-002", project_id=proj_1.id, name="Auth API", type="API Endpoint", value="https://api.threatlens.local/auth")
-        db.add_all([asset_1, asset_2])
+        asset_3 = Asset(id="ast-003", project_id=proj_4.id, name="Core Admin API", type="API Endpoint", value="https://admin.threatlens.local/api")
+        db.add_all([asset_1, asset_2, asset_3])
         db.flush()
 
         # 4. Findings
         finding_1 = Finding(id="fdg-001", project_id=proj_1.id, asset_id=asset_1.id, title="Missing HSTS Header", category="Configuration", severity="Medium", confidence="High", blast_radius="Low", description="The HTTP Strict-Transport-Security response header is missing.")
         finding_2 = Finding(id="fdg-002", project_id=proj_1.id, asset_id=asset_2.id, title="Insecure Cookie Flags", category="Configuration", severity="High", confidence="High", blast_radius="Medium", description="Session cookies are missing the Secure and HttpOnly flags.")
-        db.add_all([finding_1, finding_2])
+        finding_3 = Finding(id="fdg-003", project_id=proj_4.id, asset_id=asset_3.id, title="Admin Token Leak", category="Secrets", severity="Critical", confidence="High", blast_radius="High", description="Hardcoded admin token found.")
+        db.add_all([finding_1, finding_2, finding_3])
         db.flush()
 
         # 5. Evidence
@@ -98,7 +107,7 @@ def seed():
         db.add_all([rule_1])
 
         db.commit()
-        print("Database seeded successfully!")
+        print("Database seeded successfully with auth data!")
 
     except Exception as e:
         print(f"Error seeding database: {e}")

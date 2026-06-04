@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "supersecretkey-please-change-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     DATABASE_URL: str = "sqlite:///./threatlens.db"
+    COOKIE_SECURE: bool = False
+    FRONTEND_ORIGIN: str = "http://localhost:3000"
 
     class Config:
         env_file = ".env"

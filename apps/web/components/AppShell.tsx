@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { UserMenu } from "./UserMenu";
 
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard" },
@@ -55,6 +56,8 @@ export function AppShell({ children, title, subtitle }: AppShellProps) {
             );
           })}
         </nav>
+
+        <UserMenu />
       </aside>
 
       <main className="min-h-screen lg:pl-72">

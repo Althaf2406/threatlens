@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { UserMenu } from "./UserMenu";
 
 type ProjectShellProps = {
   children: ReactNode;
@@ -75,6 +76,8 @@ export function ProjectShell({
             );
           })}
         </nav>
+
+        <UserMenu />
       </aside>
 
       <main className="min-h-screen lg:pl-72">

@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 export const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
 // Helper to convert snake_case string to camelCase
@@ -23,45 +23,70 @@ function mapKeysToCamelCase(obj: any): any {
 }
 
 export async function fetchJson(endpoint: string, options: RequestInit = {}) {
-  // Option to explicitly use mock data if backend isn't ready
-  if (USE_MOCK_API) {
-    console.warn(`[API Mock Fallback] using mock for ${endpoint}`);
-    // We would import mockData and simulate response here if needed.
-    // For now, if USE_MOCK_API is true, we throw an error instructing to handle mock explicitly in the caller, 
-    // or just return mock data if imported. We'll throw to ensure callers know.
-    throw new Error("MOCK_FALLBACK_REQUESTED");
-  }
-
   const url = `${API_BASE_URL}${endpoint}`;
   try {
     const response = await fetch(url, {
       ...options,
+      credentials: "include", // Send HTTP-Only cookies with requests
       headers: {
         "Content-Type": "application/json",
         ...options.headers,
       },
-      // cache: "no-store", // depending on Next.js setup, we might want fresh data
     });
     
     if (!response.ok) {
-      // Handle non-2xx responses strictly
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+      if (response.status === 401) {
+        throw new Error("UNAUTHORIZED");
+      }
+      if (response.status === 403) {
+        throw new Error("FORBIDDEN");
+      }
+      if (response.status === 404) {
+        throw new Error("NOT_FOUND");
+      }
+      
+      const errText = await response.text();
+      let errorDetail = errText;
+      try {
+        const errJson = JSON.parse(errText);
+        errorDetail = errJson.detail || errText;
+      } catch (e) {}
+      
+      throw new Error(errorDetail || `API error: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
     return mapKeysToCamelCase(data);
   } catch (error: any) {
     console.error(`Fetch error on ${endpoint}:`, error);
-    // Don't silent fail, throw explicitly
-    throw new Error(error.message || `Failed to fetch ${endpoint}`);
+    throw error;
   }
+}
+
+// ---------------------------------------------------------
+// Auth
+// ---------------------------------------------------------
+export async function registerUser(data: any) {
+  return fetchJson("/auth/register", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function loginUser(data: any) {
+  return fetchJson("/auth/login", { method: "POST", body: JSON.stringify(data) });
+}
+
+export async function logoutUser() {
+  return fetchJson("/auth/logout", { method: "POST" });
+}
+
+export async function getCurrentUser() {
+  return fetchJson("/auth/me");
 }
 
 // ---------------------------------------------------------
 // Projects
 // ---------------------------------------------------------
 export async function getProjects() {
-  return fetchJson("/projects");
+  return fetchJson("/projects/");
 }
 
 export async function getProject(projectId: string) {
@@ -69,7 +94,7 @@ export async function getProject(projectId: string) {
 }
 
 export async function createProject(data: any) {
-  return fetchJson("/projects", { method: "POST", body: JSON.stringify(data) });
+  return fetchJson("/projects/", { method: "POST", body: JSON.stringify(data) });
 }
 
 export async function updateProject(projectId: string, data: any) {
@@ -182,6 +207,12 @@ export async function generateProjectReport(projectId: string, type: string) {
 // ---------------------------------------------------------
 export async function getUsageSettings() {
   return fetchJson(`/settings/usage`);
+}
+
+export async function updateSettings(data: any) {
+  // Mock endpoint since backend only supports updateDetectionRule currently
+  console.log("Mock updateSettings", data);
+  return { msg: "Settings updated" };
 }
 
 export async function getDetectionRules() {
