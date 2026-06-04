@@ -1,37 +1,21 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
-
-const projects = [
-  {
-    id: "proj-001",
-    name: "Demo Web App",
-    environment: "Staging",
-    assets: 2,
-    findings: 5,
-    risk: "High",
-    updatedAt: "Today",
-  },
-  {
-    id: "proj-002",
-    name: "Public API Service",
-    environment: "Demo",
-    assets: 1,
-    findings: 3,
-    risk: "Medium",
-    updatedAt: "Yesterday",
-  },
-  {
-    id: "proj-003",
-    name: "Student Portfolio App",
-    environment: "Lab",
-    assets: 1,
-    findings: 1,
-    risk: "Low",
-    updatedAt: "3 days ago",
-  },
-];
+import { getProjects, getAssetsByProjectId, getFindingsByProjectId } from "@/lib/mock-data";
 
 export default function ProjectsPage() {
+  const projectsData = getProjects();
+  
+  const projects = projectsData.map(p => {
+    const assets = getAssetsByProjectId(p.id);
+    const findings = getFindingsByProjectId(p.id);
+    
+    return {
+      ...p,
+      assetCount: assets.length,
+      findingCount: findings.length,
+    };
+  });
+
   return (
     <AppShell
       title="Projects"
@@ -70,26 +54,35 @@ export default function ProjectsPage() {
                 </p>
               </div>
 
-              <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
-                {project.risk}
+              <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                project.riskLevel === 'High' ? 'bg-red-500/10 text-red-300' : 
+                project.riskLevel === 'Medium' ? 'bg-orange-500/10 text-orange-300' : 
+                'bg-blue-500/10 text-blue-300'
+              }`}>
+                {project.riskLevel}
               </span>
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-slate-950 p-4">
-                <p className="text-2xl font-bold text-white">{project.assets}</p>
+                <p className="text-2xl font-bold text-white">{project.assetCount}</p>
                 <p className="mt-1 text-xs text-slate-500">Assets</p>
               </div>
 
               <div className="rounded-xl bg-slate-950 p-4">
-                <p className="text-2xl font-bold text-white">{project.findings}</p>
+                <p className="text-2xl font-bold text-white">{project.findingCount}</p>
                 <p className="mt-1 text-xs text-slate-500">Findings</p>
               </div>
             </div>
 
-            <p className="mt-5 text-xs text-slate-500">
-              Last updated: {project.updatedAt}
-            </p>
+            <div className="mt-5 flex items-center justify-between">
+              <p className="text-xs text-slate-500">
+                Last updated: {project.updatedAt}
+              </p>
+              <p className="text-xs text-slate-500">
+                Score: {project.postureScore}
+              </p>
+            </div>
           </Link>
         ))}
       </div>
