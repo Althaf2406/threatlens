@@ -1,29 +1,71 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { ProjectShell } from "@/components/ProjectShell";
-import { getProjectById, getFindingsByProjectId, getAssetsByProjectId } from "@/lib/mock-data";
+import { getProject, getProjectFindings, getProjectAssets } from "@/lib/api";
+import LoadingState from "@/components/LoadingState";
+import ErrorState from "@/components/ErrorState";
+import EmptyState from "@/components/EmptyState";
 
 export default function FindingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = use(params);
-  const project = getProjectById(projectId);
-  const findings = getFindingsByProjectId(projectId);
-  const assets = getAssetsByProjectId(projectId);
+  
+  const [project, setProject] = useState<any>(null);
+  const [findings, setFindings] = useState<any[]>([]);
+  const [assets, setAssets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!project) {
+  const [severityFilter, setSeverityFilter] = useState("All Severities");
+  const [statusFilter, setStatusFilter] = useState("All Statuses");
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [projData, findingsData, assetsData] = await Promise.all([
+        getProject(projectId),
+        getProjectFindings(projectId),
+        getProjectAssets(projectId)
+      ]);
+      
+      setProject(projData);
+      setFindings(findingsData);
+      setAssets(assetsData);
+    } catch (err: any) {
+      setError(err.message || "Failed to load findings.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [projectId]);
+
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Project Not Found</h1>
-          <p className="mt-2 text-slate-400">The project {projectId} does not exist.</p>
-          <Link href="/projects" className="mt-6 inline-block rounded-xl bg-blue-600 px-4 py-2 font-medium text-white">
-            Back to Projects
-          </Link>
-        </div>
-      </div>
+      <ProjectShell projectId={projectId} projectName="Loading..." title="Findings" subtitle="Loading project findings...">
+        <LoadingState message="Loading findings..." />
+      </ProjectShell>
     );
   }
+
+  if (error || !project) {
+    return (
+      <ProjectShell projectId={projectId} projectName="Error" title="Findings" subtitle="Failed to load">
+        <ErrorState message={error || "Project not found"} onRetry={loadData} />
+      </ProjectShell>
+    );
+  }
+
+  const filteredFindings = findings.filter(f => {
+    if (severityFilter !== "All Severities" && f.severity !== severityFilter) return false;
+    if (statusFilter !== "All Statuses" && f.status !== statusFilter) return false;
+    return true;
+  });
 
   return (
     <ProjectShell
@@ -35,14 +77,22 @@ export default function FindingsPage({ params }: { params: Promise<{ id: string 
     >
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
         <div className="flex gap-4">
-          <select className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-300">
+          <select 
+            value={severityFilter}
+            onChange={(e) => setSeverityFilter(e.target.value)}
+            className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-300"
+          >
             <option>All Severities</option>
             <option>Critical</option>
             <option>High</option>
             <option>Medium</option>
             <option>Low</option>
           </select>
-          <select className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-300">
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-300"
+          >
             <option>All Statuses</option>
             <option>Open</option>
             <option>Confirmed</option>
@@ -50,18 +100,18 @@ export default function FindingsPage({ params }: { params: Promise<{ id: string 
           </select>
         </div>
         <div className="text-sm text-slate-400">
-          Showing {findings.length} finding(s)
+          Showing {filteredFindings.length} finding(s)
         </div>
       </div>
 
       <div className="grid gap-4">
-        {findings.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center">
-            <h3 className="text-lg font-medium text-white">No findings</h3>
-            <p className="mt-2 text-sm text-slate-400">Your project looks secure. No vulnerabilities found.</p>
-          </div>
+        {filteredFindings.length === 0 ? (
+          <EmptyState 
+            title="No findings" 
+            message={findings.length === 0 ? "Your project looks secure. No vulnerabilities found." : "No findings match the current filters."}
+          />
         ) : (
-          findings.map((finding) => {
+          filteredFindings.map((finding) => {
             const asset = assets.find(a => a.id === finding.assetId);
             return (
               <Link
@@ -89,7 +139,7 @@ export default function FindingsPage({ params }: { params: Promise<{ id: string 
                 <div className="flex flex-wrap items-center gap-2 md:flex-col md:items-end md:gap-3">
                   <div className="flex gap-2">
                     <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      finding.severity === 'High' ? 'bg-red-500/10 text-red-300' : 
+                      finding.severity === 'High' || finding.severity === 'Critical' ? 'bg-red-500/10 text-red-300' : 
                       finding.severity === 'Medium' ? 'bg-orange-500/10 text-orange-300' : 
                       'bg-blue-500/10 text-blue-300'
                     }`}>
@@ -103,8 +153,12 @@ export default function FindingsPage({ params }: { params: Promise<{ id: string 
                     <span>Blast Radius: {finding.blastRadius}</span>
                     <span>&bull;</span>
                     <span>Status: {finding.status}</span>
-                    <span>&bull;</span>
-                    <span>{finding.evidenceIds.length} Evidence</span>
+                    {finding.evidenceIds && (
+                      <>
+                        <span>&bull;</span>
+                        <span>{finding.evidenceIds.length} Evidence</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </Link>

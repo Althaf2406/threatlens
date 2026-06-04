@@ -1,42 +1,98 @@
 "use client";
 
 import Link from "next/link";
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { ProjectShell } from "@/components/ProjectShell";
 import {
-  getProjectById,
-  getAssetsByProjectId,
-  getFindingsByProjectId,
-} from "@/lib/mock-data";
+  getProject,
+  getProjectAssets,
+  getProjectFindings,
+  runPassiveCheck
+} from "@/lib/api";
+import LoadingState from "@/components/LoadingState";
+import ErrorState from "@/components/ErrorState";
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = use(params);
-  const [showSimulatedAlert, setShowSimulatedAlert] = useState(false);
-
-  const project = getProjectById(projectId);
-  const assets = getAssetsByProjectId(projectId);
-  const allFindings = getFindingsByProjectId(projectId);
   
-  if (!project) {
+  const [project, setProject] = useState<any>(null);
+  const [assets, setAssets] = useState<any[]>([]);
+  const [allFindings, setAllFindings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [showSimulatedAlert, setShowSimulatedAlert] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [projData, assetsData, findingsData] = await Promise.all([
+        getProject(projectId),
+        getProjectAssets(projectId),
+        getProjectFindings(projectId)
+      ]);
+      
+      setProject(projData);
+      setAssets(assetsData);
+      setAllFindings(findingsData);
+    } catch (err: any) {
+      setError(err.message || "Failed to load project details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [projectId]);
+
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Project Not Found</h1>
-          <p className="mt-2 text-slate-400">The project {projectId} does not exist.</p>
-          <Link href="/projects" className="mt-6 inline-block rounded-xl bg-blue-600 px-4 py-2 font-medium text-white">
-            Back to Projects
-          </Link>
-        </div>
-      </div>
+      <ProjectShell projectId={projectId} projectName="Loading..." title="Overview" subtitle="Loading project data...">
+        <LoadingState message="Loading project overview..." />
+      </ProjectShell>
+    );
+  }
+
+  if (error || !project) {
+    return (
+      <ProjectShell projectId={projectId} projectName="Error" title="Overview" subtitle="Failed to load">
+        <ErrorState message={error || "Project not found"} onRetry={loadData} />
+      </ProjectShell>
     );
   }
   
   const highRiskCount = allFindings.filter(f => f.severity === 'High' || f.severity === 'Critical').length;
-  const recentFindings = [...allFindings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 3);
+  const recentFindings = [...allFindings]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3);
 
-  const handlePassiveCheck = () => {
-    setShowSimulatedAlert(true);
-    setTimeout(() => setShowSimulatedAlert(false), 3000);
+  const handlePassiveCheck = async () => {
+    if (assets.length === 0) {
+      alert("Add an asset before running passive check.");
+      return;
+    }
+    
+    try {
+      setIsScanning(true);
+      const assetId = assets[0].id; // ambil asset pertama sesuai requirement
+      await runPassiveCheck(projectId, assetId);
+      
+      setShowSimulatedAlert(true);
+      setTimeout(() => setShowSimulatedAlert(false), 3000);
+      
+      // Refresh findings
+      const findingsData = await getProjectFindings(projectId);
+      setAllFindings(findingsData);
+    } catch (err) {
+      console.error("Passive check failed", err);
+      alert("Failed to run passive check.");
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   return (
@@ -53,28 +109,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             Project Overview
           </h2>
           <p className="mt-1 text-sm text-slate-400">
-            Environment: {project.environment} | Last scan: {project.updatedAt} | Risk level: {project.riskLevel}
+            Environment: {project.environment} | Last scan: {project.updatedAt ? new Date(project.updatedAt).toLocaleDateString() : 'N/A'} | Risk level: {project.riskLevel || 'Low'}
           </p>
         </div>
 
         <button 
           onClick={handlePassiveCheck}
-          className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-500"
+          disabled={isScanning}
+          className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-50"
         >
-          Run Passive Check
+          {isScanning ? "Scanning..." : "Run Passive Check"}
         </button>
       </div>
       
       {showSimulatedAlert && (
         <div className="mb-6 rounded-xl border border-green-800 bg-green-900/30 p-4 text-green-300">
-          Passive check simulated. Latest scan result updated.
+          Passive check completed. Latest scan result updated.
         </div>
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
           <p className="text-sm text-slate-400">Posture Score</p>
-          <p className="mt-3 text-3xl font-bold text-white">{project.postureScore}</p>
+          <p className="mt-3 text-3xl font-bold text-white">{project.postureScore || 0}</p>
           <p className="mt-2 text-sm text-slate-500">
             Current security posture
           </p>
@@ -134,7 +191,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
 
                     <span className="rounded-full bg-green-500/10 px-3 py-1 text-xs text-green-300">
-                      {asset.status}
+                      {asset.status || 'Active'}
                     </span>
                   </div>
                 </div>

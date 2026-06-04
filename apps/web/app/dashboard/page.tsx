@@ -1,107 +1,178 @@
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
-import { MetricCard } from "@/components/MetricCard";
-import {
-  getProjects,
-  getFindingsByProjectId,
-  getRemediationTasksByProjectId,
-  getUsageLimit,
-} from "@/lib/mock-data";
+import { getProjects, getUsageSettings, getProjectFindings } from "@/lib/api";
+import ErrorState from "@/components/ErrorState";
 
-export default function DashboardPage() {
-  const projects = getProjects();
-  const usage = getUsageLimit();
-  
-  let totalFindings = 0;
-  let totalHighRisk = 0;
-  let totalFixed = 0;
-  
-  const allFindings: any[] = [];
+export default async function DashboardPage() {
+  let projects: any[] = [];
+  let usage: any = null;
+  let allFindings: any[] = [];
+  let errorMsg: string | null = null;
 
-  for (const project of projects) {
-    const pFindings = getFindingsByProjectId(project.id);
-    const pTasks = getRemediationTasksByProjectId(project.id);
+  try {
+    // Parallel fetch projects and usage
+    const [projectsData, usageData] = await Promise.all([
+      getProjects(),
+      getUsageSettings()
+    ]);
     
-    totalFindings += pFindings.length;
-    totalHighRisk += pFindings.filter(f => f.severity === "High" || f.severity === "Critical").length;
-    totalFixed += pTasks.filter(t => t.status === "fixed").length;
+    projects = projectsData;
+    usage = usageData;
+
+    // Fetch findings for all projects to aggregate
+    const findingsPromises = projects.map(p => getProjectFindings(p.id));
+    const findingsResults = await Promise.all(findingsPromises);
     
-    pFindings.forEach(f => {
-      allFindings.push({
-        ...f,
-        projectName: project.name,
-      });
+    // Attach project info to findings for global display
+    findingsResults.forEach((projectFindings: any[], idx) => {
+      const projectName = projects[idx].name;
+      const enriched = projectFindings.map(f => ({ ...f, projectName }));
+      allFindings = [...allFindings, ...enriched];
     });
+
+  } catch (err: any) {
+    errorMsg = err.message || "Failed to load dashboard data.";
   }
+
+  if (errorMsg) {
+    return (
+      <AppShell title="Dashboard" subtitle="Global overview">
+        <ErrorState message={errorMsg} />
+      </AppShell>
+    );
+  }
+
+  const highRiskFindings = allFindings.filter(
+    (f) => f.severity === "High" || f.severity === "Critical"
+  );
   
-  // Sort by created descending
-  allFindings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const recentFindings = allFindings.slice(0, 5);
-  const averageScore = projects.reduce((acc, p) => acc + p.postureScore, 0) / (projects.length || 1);
+  // Recent high risk
+  const recentHighRisk = [...highRiskFindings]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
+
+  // Recent projects
+  const recentProjects = [...projects]
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+    .slice(0, 3);
 
   return (
     <AppShell
       title="Dashboard"
-      subtitle="Overview security posture, latest findings, scan activity, and remediation progress."
+      subtitle="Global overview of your security workspaces."
     >
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Total Projects" value={projects.length.toString()} description={`Out of ${usage.projectLimit} limit`} />
-        <MetricCard title="Open Findings" value={totalFindings.toString()} description="Across all projects" />
-        <MetricCard title="High Risk" value={totalHighRisk.toString()} description="Findings with high severity" />
-        <MetricCard title="Fixed Issues" value={totalFixed.toString()} description="Completed remediation tasks" />
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-slate-400">Total Projects</p>
+            <span className="text-xs font-medium text-slate-500">
+              {projects.length} / {usage?.projectLimit || 3} Limit
+            </span>
+          </div>
+          <p className="mt-2 text-3xl font-bold text-white">{projects.length}</p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-slate-400">Token Usage</p>
+            <span className="text-xs font-medium text-slate-500">
+              {usage?.tokenLimit || 1000} Limit
+            </span>
+          </div>
+          <p className="mt-2 text-3xl font-bold text-white">
+            {projects.reduce((acc, p) => acc + (p.tokenUsed || 0), 0)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <p className="text-sm font-medium text-slate-400">Open Findings</p>
+          <p className="mt-2 text-3xl font-bold text-white">
+            {allFindings.filter(f => f.status === 'open').length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+          <p className="text-sm font-medium text-slate-400">High Risk</p>
+          <p className="mt-2 text-3xl font-bold text-red-400">
+            {highRiskFindings.filter(f => f.status === 'open').length}
+          </p>
+        </div>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 xl:col-span-2">
+      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Recent Findings</h2>
-            <span className="text-sm text-slate-500">Across workspace</span>
+            <h3 className="text-lg font-semibold text-white">
+              Recent High Risk Findings
+            </h3>
           </div>
 
           <div className="mt-5 space-y-3">
-            {recentFindings.length === 0 ? (
-              <p className="text-sm text-slate-500">No findings available.</p>
+            {recentHighRisk.length === 0 ? (
+              <p className="text-sm text-slate-500">No high risk findings detected.</p>
             ) : (
-              recentFindings.map((finding) => (
-                <div
+              recentHighRisk.map((finding) => (
+                <Link
                   key={finding.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950 p-4"
+                  href={`/projects/${finding.projectId}/findings/${finding.id}`}
+                  className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4 transition hover:bg-slate-900"
                 >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <h3 className="font-medium text-white">{finding.title}</h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Project: {finding.projectName}
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        finding.severity === 'High' ? 'bg-red-500/10 text-red-300' : 
-                        finding.severity === 'Medium' ? 'bg-orange-500/10 text-orange-300' : 
-                        'bg-blue-500/10 text-blue-300'
-                      }`}>
-                        {finding.severity}
-                      </span>
-                      <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-300">
-                        {finding.confidence}
-                      </span>
-                    </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {finding.title}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Project: {finding.projectName} • {new Date(finding.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
-                </div>
+                  <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-medium text-red-300">
+                    {finding.severity}
+                  </span>
+                </Link>
               ))
             )}
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-          <h2 className="text-lg font-semibold text-white">Workspace Posture</h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Average posture score across all active projects based on severity and findings.
-          </p>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">Recent Projects</h3>
+            <Link
+              href="/projects"
+              className="text-sm text-blue-400 hover:text-blue-300"
+            >
+              View all
+            </Link>
+          </div>
 
-          <div className="mt-6 rounded-2xl bg-slate-950 p-6 text-center">
-            <p className="text-5xl font-bold text-blue-400">{Math.round(averageScore)}</p>
-            <p className="mt-2 text-sm text-slate-500">Average Score</p>
+          <div className="mt-5 space-y-3">
+            {recentProjects.length === 0 ? (
+              <p className="text-sm text-slate-500">No projects available.</p>
+            ) : (
+              recentProjects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4 transition hover:bg-slate-900"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {project.name}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {project.environment}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    project.riskLevel === 'High' ? 'bg-red-500/10 text-red-300' : 
+                    project.riskLevel === 'Medium' ? 'bg-orange-500/10 text-orange-300' : 
+                    'bg-blue-500/10 text-blue-300'
+                  }`}>
+                    {project.riskLevel} Risk
+                  </span>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </div>

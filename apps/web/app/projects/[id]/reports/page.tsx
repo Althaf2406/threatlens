@@ -1,134 +1,156 @@
 "use client";
 
-import { use, useState } from "react";
-import Link from "next/link";
+import { use, useState, useEffect } from "react";
 import { ProjectShell } from "@/components/ProjectShell";
-import { getProjectById } from "@/lib/mock-data";
+import { getProject, getProjectReports, generateProjectReport } from "@/lib/api";
+import LoadingState from "@/components/LoadingState";
+import ErrorState from "@/components/ErrorState";
+import EmptyState from "@/components/EmptyState";
 
 export default function ReportsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = use(params);
-  const project = getProjectById(projectId);
   
-  const [generating, setGenerating] = useState(false);
-  const [recentReports, setRecentReports] = useState([
-    { id: 'rep-01', name: 'Executive Summary Q3', date: '2 days ago', type: 'Executive', status: 'Ready' },
-    { id: 'rep-02', name: 'Full Technical Audit', date: '1 week ago', type: 'Technical', status: 'Ready' }
-  ]);
+  const [project, setProject] = useState<any>(null);
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!project) {
+  const [selectedReportType, setSelectedReportType] = useState("Executive Summary");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [projData, reportsData] = await Promise.all([
+        getProject(projectId),
+        getProjectReports(projectId)
+      ]);
+      
+      setProject(projData);
+      setReports(reportsData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    } catch (err: any) {
+      setError(err.message || "Failed to load reports.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [projectId]);
+
+  const handleGenerate = async () => {
+    try {
+      setIsGenerating(true);
+      setSuccessMessage("");
+      await generateProjectReport(projectId, selectedReportType);
+      
+      setSuccessMessage("Report generated successfully!");
+      setTimeout(() => setSuccessMessage(""), 4000);
+      
+      const reportsData = await getProjectReports(projectId);
+      setReports(reportsData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate report.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Project Not Found</h1>
-          <p className="mt-2 text-slate-400">The project {projectId} does not exist.</p>
-          <Link href="/projects" className="mt-6 inline-block rounded-xl bg-blue-600 px-4 py-2 font-medium text-white">
-            Back to Projects
-          </Link>
-        </div>
-      </div>
+      <ProjectShell projectId={projectId} projectName="Loading..." title="Reporting" subtitle="Loading reports...">
+        <LoadingState message="Loading generated reports..." />
+      </ProjectShell>
     );
   }
 
-  const handleGenerate = () => {
-    setGenerating(true);
-    setTimeout(() => {
-      setGenerating(false);
-      setRecentReports([
-        { id: `rep-${Date.now()}`, name: 'On-Demand Security Scan', date: 'Just now', type: 'Custom', status: 'Ready' },
-        ...recentReports
-      ]);
-    }, 2000);
-  };
+  if (error || !project) {
+    return (
+      <ProjectShell projectId={projectId} projectName="Error" title="Reporting" subtitle="Failed to load">
+        <ErrorState message={error || "Project not found"} onRetry={loadData} />
+      </ProjectShell>
+    );
+  }
 
   return (
     <ProjectShell
       projectId={projectId}
       projectName={project.name}
-      title="Security Reports"
-      subtitle="Generate, view, and export compliance and security reports."
+      title="Reporting"
+      subtitle="Generate and view evidence-backed security reports."
       tokenUsed={project.tokenUsed}
     >
-      <div className="grid xl:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-          <h2 className="text-lg font-semibold text-white">Generate Report</h2>
+      <div className="mb-6 rounded-xl border border-blue-900/50 bg-blue-900/10 p-4 text-blue-200 text-sm">
+        <strong className="text-blue-400">Note:</strong> All claims in the report must be evidence-backed. Unknown or insufficient evidence must be stated explicitly.
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        {/* Generator Form */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 xl:col-span-1 h-fit">
+          <h3 className="text-lg font-semibold text-white">Generate Report</h3>
           <p className="mt-2 text-sm text-slate-400">
-            Create a point-in-time snapshot of your project's security posture.
+            Create a new point-in-time snapshot of the project's security posture.
           </p>
-          
+
           <div className="mt-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Report Type</label>
-              <select className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white">
-                <option>Executive Summary (High-level overview)</option>
-                <option>Technical Details (Full finding list)</option>
-                <option>Compliance Audit (Standards mapping)</option>
-                <option>Remediation Plan (Actionable tasks)</option>
+              <select 
+                value={selectedReportType}
+                onChange={(e) => setSelectedReportType(e.target.value)}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-300 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="Executive Summary">Executive Summary</option>
+                <option value="Technical Report">Technical Report</option>
               </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Format</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm text-slate-300 bg-slate-950 px-4 py-2 rounded-xl border border-slate-700 cursor-pointer">
-                  <input type="radio" name="format" defaultChecked className="text-blue-500 bg-slate-800 border-slate-600 focus:ring-blue-500" />
-                  PDF
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-300 bg-slate-950 px-4 py-2 rounded-xl border border-slate-700 cursor-pointer">
-                  <input type="radio" name="format" className="text-blue-500 bg-slate-800 border-slate-600 focus:ring-blue-500" />
-                  CSV
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-300 bg-slate-950 px-4 py-2 rounded-xl border border-slate-700 cursor-pointer">
-                  <input type="radio" name="format" className="text-blue-500 bg-slate-800 border-slate-600 focus:ring-blue-500" />
-                  JSON
-                </label>
-              </div>
             </div>
 
             <button 
               onClick={handleGenerate}
-              disabled={generating}
-              className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-500 disabled:bg-blue-800 disabled:text-slate-300 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+              disabled={isGenerating}
+              className="w-full rounded-xl bg-blue-600 py-3 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-50"
             >
-              {generating ? (
-                <>
-                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating...
-                </>
-              ) : "Generate Report"}
+              {isGenerating ? "Generating..." : "Generate Report"}
             </button>
+            
+            {successMessage && (
+              <p className="text-sm text-green-400 mt-2 text-center">{successMessage}</p>
+            )}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-          <h2 className="text-lg font-semibold text-white">Recent Reports</h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Previously generated reports available for download.
-          </p>
+        {/* Reports List */}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 xl:col-span-2">
+          <h3 className="text-lg font-semibold text-white mb-6">Generated Reports</h3>
 
-          <div className="mt-6 space-y-3">
-            {recentReports.map(report => (
-              <div key={report.id} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <div>
-                  <h3 className="font-medium text-white">{report.name}</h3>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                    <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-300">{report.type}</span>
-                    <span>&bull;</span>
-                    <span>{report.date}</span>
+          <div className="space-y-4">
+            {reports.length === 0 ? (
+               <EmptyState 
+                title="No reports generated" 
+                message="Generate your first report using the form to the left." 
+               />
+            ) : (
+              reports.map((report) => (
+                <div key={report.id} className="rounded-xl border border-slate-800 bg-slate-950 p-5 overflow-hidden">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-slate-800 pb-3 mb-3">
+                    <div>
+                      <h4 className="font-semibold text-white">{report.title}</h4>
+                      <span className="text-xs font-medium text-slate-400">Type: {report.type}</span>
+                    </div>
+                    <span className="text-xs text-slate-500">{new Date(report.createdAt).toLocaleString()}</span>
+                  </div>
+                  
+                  <div className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
+                    {report.summary}
                   </div>
                 </div>
-                
-                <button className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 p-2 rounded-lg transition" title="Download">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                </button>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>
