@@ -34,10 +34,25 @@ export async function getProject(projectId: string) {
 }
 
 // ---------------------------------------------------------
+// Assets & Passive Checker
+// ---------------------------------------------------------
+export async function getProjectAssets(projectId: string) {
+  return fetchJson(`/projects/${projectId}/assets`);
+}
+
+export async function runPassiveCheck(projectId: string, assetId: string) {
+  return fetchJson(`/projects/${projectId}/assets/${assetId}/passive-check`, { method: "POST" });
+}
+
+// ---------------------------------------------------------
 // Findings
 // ---------------------------------------------------------
 export async function getProjectFindings(projectId: string) {
   return fetchJson(`/projects/${projectId}/findings`);
+}
+
+export async function getFindingDetail(projectId: string, findingId: string) {
+  return fetchJson(`/projects/${projectId}/findings/${findingId}`);
 }
 
 // ---------------------------------------------------------
@@ -55,10 +70,31 @@ export async function getProjectGraph(projectId: string) {
 }
 
 // ---------------------------------------------------------
+// Lab
+// ---------------------------------------------------------
+export async function generateSyntheticEvents(projectId: string, scenarioId: string) {
+  return fetchJson(`/projects/${projectId}/lab/generate`, {
+    method: "POST",
+    body: JSON.stringify({ scenario_id: scenarioId }),
+  });
+}
+
+export async function getProjectEvents(projectId: string) {
+  return fetchJson(`/projects/${projectId}/events`);
+}
+
+// ---------------------------------------------------------
 // Remediation
 // ---------------------------------------------------------
 export async function getProjectRemediation(projectId: string) {
   return fetchJson(`/projects/${projectId}/remediation`);
+}
+
+export async function updateRemediationTask(projectId: string, taskId: string, status: string) {
+  return fetchJson(`/projects/${projectId}/remediation/${taskId}`, {
+    method: "PUT",
+    body: JSON.stringify({ status })
+  });
 }
 
 // ---------------------------------------------------------
@@ -73,4 +109,29 @@ export async function getProjectStandards(projectId: string) {
 // ---------------------------------------------------------
 export async function getProjectReports(projectId: string) {
   return fetchJson(`/projects/${projectId}/reports`);
+}
+
+export async function generateProjectReport(projectId: string, type: string) {
+  return fetchJson(`/projects/${projectId}/reports`, {
+    method: "POST",
+    body: JSON.stringify({ type })
+  });
+}
+
+// ---------------------------------------------------------
+// Settings
+// ---------------------------------------------------------
+export async function getUsageSettings() {
+  return fetchJson(`/settings/usage`);
+}
+
+export async function getDetectionRules() {
+  return fetchJson(`/settings/detection-rules`);
+}
+
+export async function updateDetectionRule(ruleId: string, enabled: boolean) {
+  return fetchJson(`/settings/detection-rules/${ruleId}`, {
+    method: "PUT",
+    body: JSON.stringify({ enabled })
+  });
 }
