@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
-import { getUsageSettings, updateSettings, getDetectionRules, updateDetectionRule, resetDetectionRule, getCurrentUser } from "@/lib/api";
+import { getUsageSettings, updateSettings, getDetectionRules, updateDetectionRule, resetDetectionRule, getCurrentUser, getSecurityStandards, importSecurityStandards, activateSecurityStandard } from "@/lib/api";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<any>(null);
   const [rules, setRules] = useState<any[]>([]);
+  const [standards, setStandards] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,11 @@ export default function SettingsPage() {
   const [editingRule, setEditingRule] = useState<any>(null);
   const [thresholdInput, setThresholdInput] = useState("");
 
+  // Standards State
+  const [importJson, setImportJson] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [selectedStandardId, setSelectedStandardId] = useState<string | null>(null);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -31,9 +37,11 @@ export default function SettingsPage() {
       const settingsData = await getUsageSettings();
       setSettings(settingsData);
       
-      if (user.role === "admin") {
+      if (user.role === "admin" || user.role === "system_admin") {
         const rulesData = await getDetectionRules();
         setRules(rulesData);
+        const stdsData = await getSecurityStandards();
+        setStandards(stdsData);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load settings.");
@@ -107,6 +115,31 @@ export default function SettingsPage() {
     }
   };
 
+  const handleImportStandards = async () => {
+    try {
+      setImporting(true);
+      const parsed = JSON.parse(importJson);
+      const newStd = await importSecurityStandards(parsed);
+      setStandards([...standards, newStd]);
+      setImportJson("");
+      alert("Standards imported successfully");
+    } catch (err: any) {
+      alert("Import failed: " + err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleActivateStandard = async (id: string) => {
+    try {
+      await activateSecurityStandard(id);
+      const stdsData = await getSecurityStandards();
+      setStandards(stdsData);
+    } catch (err: any) {
+      alert("Failed to activate: " + err.message);
+    }
+  };
+
   if (loading) {
     return (
       <AppShell title="Settings" subtitle="System preferences">
@@ -142,6 +175,12 @@ export default function SettingsPage() {
             className={`w-full text-left px-4 py-3 rounded-xl font-medium transition ${activeTab === "detection_rules" ? "bg-slate-800 text-white" : "hover:bg-slate-800/50 text-slate-400"}`}
           >
             Detection Rules
+          </button>
+          <button 
+            onClick={() => setActiveTab("standards")}
+            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition ${activeTab === "standards" ? "bg-slate-800 text-white" : "hover:bg-slate-800/50 text-slate-400"}`}
+          >
+            Security Standards
           </button>
           <button className="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 font-medium transition">
             API Keys & Integrations
@@ -292,6 +331,115 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "standards" && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 md:p-8">
+              <h3 className="text-xl font-semibold text-white mb-2">Security Standards Data</h3>
+              <p className="text-sm text-slate-400 mb-6">Standards mapping is used as defensive guidance and does not represent formal compliance certification.</p>
+              
+              {currentUser?.role !== "admin" && currentUser?.role !== "system_admin" ? (
+                <div className="rounded-xl border border-slate-800 bg-slate-950 p-6 text-center">
+                  <p className="text-slate-400">Only administrators can manage security standards data.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Standards Table */}
+                  <div className="overflow-x-auto rounded-xl border border-slate-800">
+                    <table className="w-full text-left text-sm text-slate-300">
+                      <thead className="bg-slate-950/50 text-xs uppercase text-slate-400">
+                        <tr>
+                          <th className="px-6 py-4 font-medium">Framework</th>
+                          <th className="px-6 py-4 font-medium">Version</th>
+                          <th className="px-6 py-4 font-medium">Name</th>
+                          <th className="px-6 py-4 font-medium">Controls</th>
+                          <th className="px-6 py-4 font-medium">Status</th>
+                          <th className="px-6 py-4 font-medium text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/50 bg-slate-900/20">
+                        {standards.map((std) => (
+                          <tr key={std.id} className="transition-colors hover:bg-slate-800/20">
+                            <td className="px-6 py-4 font-medium text-white">{std.framework}</td>
+                            <td className="px-6 py-4">{std.version}</td>
+                            <td className="px-6 py-4">{std.name}</td>
+                            <td className="px-6 py-4">{std.controls?.length || 0}</td>
+                            <td className="px-6 py-4">
+                              {std.isActive ? (
+                                <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400">Active</span>
+                              ) : (
+                                <span className="rounded-full bg-slate-500/10 px-2 py-1 text-xs font-medium text-slate-400">Inactive</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              {!std.isActive && (
+                                <button 
+                                  onClick={() => handleActivateStandard(std.id)}
+                                  className="text-blue-400 hover:text-blue-300 mr-4 font-medium text-xs uppercase tracking-wider"
+                                >
+                                  Activate
+                                </button>
+                              )}
+                              <button 
+                                onClick={() => setSelectedStandardId(selectedStandardId === std.id ? null : std.id)}
+                                className="text-slate-400 hover:text-white font-medium text-xs uppercase tracking-wider"
+                              >
+                                {selectedStandardId === std.id ? "Hide" : "View"} Controls
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {standards.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-8 text-center text-slate-500">No standards found</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Selected Standard Controls */}
+                  {selectedStandardId && (
+                    <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-6">
+                      <h4 className="text-lg font-medium text-white mb-4">Controls</h4>
+                      <div className="space-y-3">
+                        {standards.find(s => s.id === selectedStandardId)?.controls?.map((c: any) => (
+                          <div key={c.id} className="rounded-lg bg-slate-900 p-4 border border-slate-800">
+                            <div className="flex gap-2 items-center mb-2">
+                              <span className="font-mono text-sm text-blue-400">{c.controlId}</span>
+                              <span className="font-medium text-white">{c.title}</span>
+                              {c.category && <span className="ml-auto text-xs text-slate-500">{c.category}</span>}
+                            </div>
+                            {c.defensiveGuidance && (
+                              <p className="text-sm text-slate-400 mt-1">Guidance: {c.defensiveGuidance}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Import Section */}
+                  <div className="rounded-xl border border-slate-800 bg-slate-950 p-6">
+                    <h4 className="font-medium text-white mb-2">Import Standard (JSON)</h4>
+                    <p className="text-xs text-slate-500 mb-4">Paste standard schema JSON including controls array to import a new framework.</p>
+                    <textarea 
+                      value={importJson}
+                      onChange={(e) => setImportJson(e.target.value)}
+                      className="w-full h-32 rounded-lg border border-slate-700 bg-slate-900 p-3 text-sm text-slate-300 font-mono mb-3 focus:border-blue-500 focus:outline-none"
+                      placeholder='{ "framework": "OWASP", "version": "2021", "name": "...", "controls": [ { "control_id": "...", "title": "..." } ] }'
+                    />
+                    <button 
+                      onClick={handleImportStandards}
+                      disabled={importing || !importJson.trim()}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-50"
+                    >
+                      {importing ? "Importing..." : "Import Data"}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -149,6 +149,33 @@ export default function FindingDetailPage({
           </div>
         )}
 
+        {/* Standards Mapping Section */}
+        <div className="mt-10">
+          <h3 className="text-lg font-semibold text-white">Standards Mapping</h3>
+          <div className="mt-4">
+            {finding.standards && finding.standards.length > 0 ? (
+              <div className="space-y-4">
+                {finding.standards.map((mapping: any) => (
+                  <div key={mapping.id} className="rounded-xl border border-slate-800 bg-slate-950 p-5">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-sm font-bold text-blue-400 font-mono bg-blue-500/10 px-2 py-1 rounded">
+                        {mapping.controlId}
+                      </span>
+                      <h4 className="font-medium text-white">{mapping.framework} {mapping.standardVersion}</h4>
+                    </div>
+                    <p className="text-sm text-slate-300 mb-2">{mapping.description}</p>
+                    {mapping.mappingReason && (
+                      <p className="text-xs text-slate-500 italic">Reason: {mapping.mappingReason}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">No standard mapping is available for this finding.</p>
+            )}
+          </div>
+        </div>
+
         {/* Evidence Section */}
         <div className="mt-10">
           <h3 className="text-lg font-semibold text-white">Evidence & Telemetry</h3>

@@ -15,7 +15,7 @@ from app.models.evidence import Evidence
 from app.models.event import Event
 from app.models.graph import GraphNode, GraphEdge
 from app.models.remediation import RemediationTask
-from app.models.standard import StandardMapping
+from app.models.standard import SecurityStandard, SecurityControl, StandardMapping
 from app.models.report import Report
 from app.models.detection_rule import DetectionRule
 from app.core.security import get_password_hash
@@ -94,9 +94,32 @@ def seed():
         rem_1 = RemediationTask(id="rem-001", project_id=proj_1.id, finding_id=finding_1.id, title="Enable HSTS in Nginx", status="open", priority="Medium")
         db.add_all([rem_1])
 
-        # 9. Standard Mapping
-        std_1 = StandardMapping(id="std-001", finding_id=finding_1.id, framework="OWASP Top 10", control="A05:2021-Security Misconfiguration", description="Missing security headers")
-        db.add_all([std_1])
+        # 9. Security Standards & Controls
+        owasp = SecurityStandard(id="std-owasp-2021", framework="OWASP Top 10", version="2021", name="OWASP Top 10 2021", is_active=True)
+        asvs = SecurityStandard(id="std-asvs-5", framework="OWASP ASVS", version="5.0.0", name="OWASP Application Security Verification Standard", is_active=True)
+        cwe = SecurityStandard(id="std-cwe", framework="CWE", version="4.14", name="Common Weakness Enumeration", is_active=True)
+        mitre_attack = SecurityStandard(id="std-attack", framework="MITRE ATT&CK", version="14.1", name="MITRE ATT&CK Enterprise", is_active=True)
+        mitre_d3fend = SecurityStandard(id="std-d3fend", framework="MITRE D3FEND", version="v0.14.0-beta", name="MITRE D3FEND", is_active=True)
+        nist_csf = SecurityStandard(id="std-nist-csf", framework="NIST CSF", version="2.0", name="NIST Cybersecurity Framework", is_active=True)
+        db.add_all([owasp, asvs, cwe, mitre_attack, mitre_d3fend, nist_csf])
+        db.flush()
+
+        controls = [
+            SecurityControl(id="ctrl-001", standard_id=owasp.id, control_id="A05:2021", title="Security Misconfiguration", category="Misconfiguration", defensive_guidance="Implement secure defaults and headers."),
+            SecurityControl(id="ctrl-002", standard_id=owasp.id, control_id="A01:2021", title="Broken Access Control", category="Access Control", defensive_guidance="Enforce least privilege."),
+            SecurityControl(id="ctrl-003", standard_id=asvs.id, control_id="V14.4.1", title="Validate HTTP Headers", category="Configuration", defensive_guidance="Use HSTS and CSP headers."),
+            SecurityControl(id="ctrl-004", standard_id=cwe.id, control_id="CWE-1004", title="Sensitive Cookie Without 'HttpOnly' Flag", category="Session Management", defensive_guidance="Set HttpOnly flag on cookies."),
+            SecurityControl(id="ctrl-005", standard_id=mitre_attack.id, control_id="T1078", title="Valid Accounts", category="Defense Evasion", defensive_guidance="Monitor for anomalous login spikes."),
+            SecurityControl(id="ctrl-006", standard_id=mitre_d3fend.id, control_id="D3-LAM", title="Local Account Monitoring", category="Detection", defensive_guidance="Analyze login events for anomalies."),
+            SecurityControl(id="ctrl-007", standard_id=nist_csf.id, control_id="PR.AC-1", title="Identity Management", category="Protect", defensive_guidance="Manage identities and access.")
+        ]
+        db.add_all(controls)
+        db.flush()
+
+        # 9.5 Standard Mapping
+        std_1 = StandardMapping(id="map-001", finding_id=finding_1.id, standard_id=owasp.id, control_id="A05:2021", framework="OWASP Top 10", standard_version="2021", mapping_reason="HSTS is missing, which is a security misconfiguration.", description="Missing security headers")
+        std_2 = StandardMapping(id="map-002", finding_id=finding_2.id, standard_id=cwe.id, control_id="CWE-1004", framework="CWE", standard_version="4.14", mapping_reason="Cookie missing secure flags.", description="Insecure cookie")
+        db.add_all([std_1, std_2])
 
         # 10. Reports
         report_1 = Report(id="rep-001", project_id=proj_1.id, title="Executive Summary Q3", type="Executive", summary="Overall posture is improving.")

@@ -27,7 +27,7 @@ export async function fetchJson(endpoint: string, options: RequestInit = {}) {
   try {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...options.headers,
+      ...(options.headers as Record<string, string> || {}),
     };
 
     if (typeof window === "undefined") {
@@ -256,7 +256,6 @@ export async function getUsageSettings() {
 
 export async function updateSettings(data: any) {
   // Mock endpoint since backend only supports updateDetectionRule currently
-  console.log("Mock updateSettings", data);
   return { msg: "Settings updated" };
 }
 
@@ -277,6 +276,55 @@ export async function updateDetectionRule(ruleId: string, payload: any) {
 
 export async function resetDetectionRule(ruleId: string) {
   return fetchJson(`/settings/detection-rules/${ruleId}/reset`, {
+    method: "POST"
+  });
+}
+
+export async function getSecurityStandards() {
+  return fetchJson(`/settings/security-standards`);
+}
+
+export async function getSecurityStandardDetail(standardId: string) {
+  return fetchJson(`/settings/security-standards/${standardId}`);
+}
+
+export async function createSecurityStandard(payload: any) {
+  return fetchJson(`/settings/security-standards`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function updateSecurityStandard(standardId: string, payload: any) {
+  return fetchJson(`/settings/security-standards/${standardId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function addSecurityControl(standardId: string, payload: any) {
+  return fetchJson(`/settings/security-standards/${standardId}/controls`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function updateSecurityControl(controlId: string, payload: any) {
+  return fetchJson(`/settings/security-controls/${controlId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function importSecurityStandards(payload: any) {
+  return fetchJson(`/settings/security-standards/import`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function activateSecurityStandard(standardId: string) {
+  return fetchJson(`/settings/security-standards/${standardId}/activate`, {
     method: "POST"
   });
 }

@@ -6,6 +6,7 @@ from app.models.scan import Scan
 from app.models.finding import Finding
 from app.models.project import Project
 from app.models.detection_rule import DetectionRule
+from app.models.standard import SecurityStandard, SecurityControl, StandardMapping
 import json
 
 class PassiveChecker:
@@ -125,6 +126,36 @@ class PassiveChecker:
             project.posture_score = posture_score
             project.updated_at = datetime.utcnow()
             
+        # Get active standards and their controls to create mappings
+        active_standards = db.query(SecurityStandard).filter(SecurityStandard.is_active == True).all()
+        controls = db.query(SecurityControl).filter(SecurityControl.standard_id.in_([s.id for s in active_standards])).all() if active_standards else []
+        
+        # Hardcoded rule_key to control_id logic for demonstration purposes
+        rule_to_control_map = {
+            "missing_hsts_header": "A05:2021",
+            "insecure_cookie_flags": "CWE-1004"
+        }
+
+        for db_finding in db_findings:
+            if db_finding.rule_key in rule_to_control_map:
+                target_control_id = rule_to_control_map[db_finding.rule_key]
+                # Find matching control in active standards
+                matched_control = next((c for c in controls if c.control_id == target_control_id), None)
+                if matched_control:
+                    matched_std = next((s for s in active_standards if s.id == matched_control.standard_id), None)
+                    if matched_std:
+                        mapping = StandardMapping(
+                            id=f"map-{uuid.uuid4().hex[:6]}",
+                            finding_id=db_finding.id,
+                            standard_id=matched_std.id,
+                            control_id=matched_control.control_id,
+                            framework=matched_std.framework,
+                            standard_version=matched_std.version,
+                            mapping_reason=f"Matched finding rule '{db_finding.rule_key}' to standard control.",
+                            description=matched_control.title
+                        )
+                        db.add(mapping)
+                    
         db.commit()
 
         return {

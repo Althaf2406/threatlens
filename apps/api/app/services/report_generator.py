@@ -5,6 +5,7 @@ class ReportGenerator:
     def generate(project_id: str, type: str, db) -> dict:
         from app.models.finding import Finding
         from app.models.detection_rule import DetectionRule
+        from app.models.standard import StandardMapping
         
         findings = db.query(Finding).filter(Finding.project_id == project_id).all()
         
@@ -17,12 +18,18 @@ class ReportGenerator:
             summary += "Detection Context:\n"
             for f in high_risk:
                 rule_info = f.rule_key if f.rule_key else "Unknown Rule"
-                summary += f"- {f.title} (Triggered by: {rule_info})\n"
+                mapping = db.query(StandardMapping).filter(StandardMapping.finding_id == f.id).first()
+                if mapping:
+                    std_info = f"{mapping.framework} {mapping.standard_version} - {mapping.control_id}"
+                else:
+                    std_info = "No direct mapping available."
+                summary += f"- {f.title} (Triggered by: {rule_info})\n  Standard Mapping: {std_info}\n"
         else:
             summary += "No High/Critical risk findings detected based on current active rules.\n"
             
         summary += "\nNote: All findings are based strictly on active defensive detection rules. "
-        summary += "Rules can be managed by Administrators in the Settings console."
+        summary += "Rules can be managed by Administrators in the Settings console.\n"
+        summary += "Disclaimer: This report is not a formal compliance certification. Standards mapping is guidance for remediation and investigation."
         
         return {
             "id": f"rep-{uuid.uuid4().hex[:8]}",
