@@ -26,13 +26,16 @@ export function ProjectShell({
 
   const projectNavigationItems = [
     { name: "Overview", href: `/projects/${projectId}` },
+    { name: "Assets", href: `/projects/${projectId}/assets` },
     { name: "Findings", href: `/projects/${projectId}/findings` },
     { name: "Timeline", href: `/projects/${projectId}/timeline` },
     { name: "Graph", href: `/projects/${projectId}/graph` },
     { name: "Lab", href: `/projects/${projectId}/lab` },
     { name: "Remediation", href: `/projects/${projectId}/remediation` },
     { name: "Standards", href: `/projects/${projectId}/standards` },
+    { name: "AI Investigator", href: `/projects/${projectId}/ai` },
     { name: "Reports", href: `/projects/${projectId}/reports` },
+    { name: "Scan History", href: `/projects/${projectId}/scans` },
   ];
 
   return (

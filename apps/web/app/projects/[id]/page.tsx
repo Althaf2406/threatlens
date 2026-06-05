@@ -113,13 +113,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           </p>
         </div>
 
-        <button 
-          onClick={handlePassiveCheck}
-          disabled={isScanning}
-          className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-50"
+        <Link
+          href={`/projects/${projectId}/assets`}
+          className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-500 text-center"
         >
-          {isScanning ? "Scanning..." : "Run Passive Check"}
-        </button>
+          Run Check from Assets Page
+        </Link>
       </div>
       
       {showSimulatedAlert && (
@@ -161,31 +160,44 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           </p>
         </div>
       </div>
+      
+      <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Security Improvement</h3>
+          <p className="mt-1 text-sm text-slate-400">Track how your posture score is trending over time.</p>
+        </div>
+        <Link href={`/projects/${projectId}/scans`} className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 whitespace-nowrap">
+          View Scan History &rarr;
+        </Link>
+      </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Assets</h3>
 
-            <button className="rounded-xl border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-800">
-              Add Asset
-            </button>
+            <div className="flex gap-2">
+              <Link href={`/projects/${projectId}/assets`} className="text-sm text-blue-400 hover:text-blue-300">
+                View all
+              </Link>
+            </div>
           </div>
 
           <div className="mt-5 space-y-3">
             {assets.length === 0 ? (
               <p className="text-sm text-slate-500">No assets configured.</p>
             ) : (
-              assets.map((asset) => (
-                <div
+              assets.slice(0, 3).map((asset) => (
+                <Link
                   key={asset.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950 p-4"
+                  href={`/projects/${projectId}/assets/${asset.id}`}
+                  className="block rounded-xl border border-slate-800 bg-slate-950 p-4 transition hover:bg-slate-900"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h4 className="font-medium text-white">{asset.name}</h4>
                       <p className="mt-1 text-sm text-slate-500">{asset.type}</p>
-                      <p className="mt-2 text-xs text-slate-600">
+                      <p className="mt-2 text-xs text-slate-600 truncate max-w-[200px]">
                         {asset.value}
                       </p>
                     </div>
@@ -194,7 +206,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       {asset.status || 'Active'}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>

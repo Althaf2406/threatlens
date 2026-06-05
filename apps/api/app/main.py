@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.routers import (
     auth, projects, assets, scans, findings, 
-    timeline, graph, lab, remediation, standards, reports, settings as api_settings
+    timeline, graph, lab, remediation, standards, reports, settings as api_settings,
+    ai_investigation
 )
 from app.db.base import Base
 from app.db.database import engine
@@ -44,3 +45,4 @@ app.include_router(remediation.router, tags=["Remediation"])
 app.include_router(standards.router, tags=["Standards"])
 app.include_router(reports.router, tags=["Reports"])
 app.include_router(api_settings.router, prefix="/settings", tags=["Settings"])
+app.include_router(ai_investigation.router, prefix="/projects", tags=["AI Investigation"])

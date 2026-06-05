@@ -16,7 +16,7 @@ class GenerateRequest(BaseModel):
 @router.post("/projects/{project_id}/lab/generate")
 def generate_lab_data(project_id: str, req: GenerateRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     get_owned_project_or_404(db, project_id, current_user)
-    events = SyntheticLab.generate_events(project_id, req.scenario_id)
+    events = SyntheticLab.generate_events(db, project_id, req.scenario_id)
     # Save the generated events to DB
     for evt_data in events:
         new_event = Event(**evt_data)

@@ -9,6 +9,8 @@ class Finding(Base):
     project_id = Column(String, ForeignKey("projects.id"))
     asset_id = Column(String, ForeignKey("assets.id"), nullable=True)
     scan_id = Column(String, ForeignKey("scans.id"), nullable=True)
+    rule_id = Column(String, ForeignKey("detection_rules.id"), nullable=True)
+    rule_key = Column(String, nullable=True)
     title = Column(String, nullable=False)
     category = Column(String, nullable=False)
     severity = Column(String, nullable=False)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, DateTime, ForeignKey, Text, Integer
 from sqlalchemy.sql import func
 from app.db.base import Base
 
@@ -13,3 +13,11 @@ class Scan(Base):
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     finished_at = Column(DateTime(timezone=True), nullable=True)
     summary = Column(Text, nullable=True)
+    
+    posture_score = Column(Integer, default=100)
+    total_findings = Column(Integer, default=0)
+    high_findings = Column(Integer, default=0)
+    medium_findings = Column(Integer, default=0)
+    low_findings = Column(Integer, default=0)
+    fixed_findings = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

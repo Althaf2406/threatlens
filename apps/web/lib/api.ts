@@ -25,15 +25,31 @@ function mapKeysToCamelCase(obj: any): any {
 export async function fetchJson(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    };
+
+    if (typeof window === "undefined") {
+      try {
+        const { cookies } = require("next/headers");
+        const cookieStore = await cookies();
+        const cookieArray = cookieStore.getAll();
+        if (cookieArray && cookieArray.length > 0) {
+          const cookieStr = cookieArray.map((c: any) => `${c.name}=${c.value}`).join('; ');
+          headers["Cookie"] = cookieStr;
+        }
+      } catch (e) {
+        console.warn("Could not attach cookies on server:", e);
+      }
+    }
+
     const response = await fetch(url, {
       ...options,
-      credentials: "include", // Send HTTP-Only cookies with requests
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
+      credentials: "include", // Send HTTP-Only cookies with requests (client side)
+      headers,
     });
-    
+
     if (!response.ok) {
       if (response.status === 401) {
         throw new Error("UNAUTHORIZED");
@@ -44,21 +60,20 @@ export async function fetchJson(endpoint: string, options: RequestInit = {}) {
       if (response.status === 404) {
         throw new Error("NOT_FOUND");
       }
-      
+
       const errText = await response.text();
       let errorDetail = errText;
       try {
         const errJson = JSON.parse(errText);
         errorDetail = errJson.detail || errText;
-      } catch (e) {}
-      
+      } catch (e) { }
+
       throw new Error(errorDetail || `API error: ${response.status} ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return mapKeysToCamelCase(data);
   } catch (error: any) {
-    console.error(`Fetch error on ${endpoint}:`, error);
     throw error;
   }
 }
@@ -112,20 +127,50 @@ export async function getProjectAssets(projectId: string) {
   return fetchJson(`/projects/${projectId}/assets`);
 }
 
+export async function getProjectAsset(projectId: string, assetId: string) {
+  return fetchJson(`/projects/${projectId}/assets/${assetId}`);
+}
+
 export async function createProjectAsset(projectId: string, data: any) {
   return fetchJson(`/projects/${projectId}/assets`, { method: "POST", body: JSON.stringify(data) });
 }
 
-export async function updateAsset(assetId: string, data: any) {
-  return fetchJson(`/assets/${assetId}`, { method: "PUT", body: JSON.stringify(data) });
+export async function updateProjectAsset(projectId: string, assetId: string, data: any) {
+  return fetchJson(`/projects/${projectId}/assets/${assetId}`, { method: "PUT", body: JSON.stringify(data) });
 }
 
-export async function deleteAsset(assetId: string) {
-  return fetchJson(`/assets/${assetId}`, { method: "DELETE" });
+export async function deleteProjectAsset(projectId: string, assetId: string) {
+  return fetchJson(`/projects/${projectId}/assets/${assetId}`, { method: "DELETE" });
+}
+
+export async function confirmProjectAssetOwnership(projectId: string, assetId: string) {
+  return fetchJson(`/projects/${projectId}/assets/${assetId}/confirm-ownership`, { method: "POST" });
 }
 
 export async function runPassiveCheck(projectId: string, assetId: string) {
   return fetchJson(`/projects/${projectId}/assets/${assetId}/passive-check`, { method: "POST" });
+}
+
+// ---------------------------------------------------------
+// Scans
+// ---------------------------------------------------------
+export async function getProjectScans(projectId: string) {
+  return fetchJson(`/projects/${projectId}/scans`);
+}
+
+export async function getProjectScanDetail(projectId: string, scanId: string) {
+  return fetchJson(`/projects/${projectId}/scans/${scanId}`);
+}
+
+export async function compareProjectScans(projectId: string, beforeScanId: string, afterScanId: string) {
+  return fetchJson(`/projects/${projectId}/scans/compare`, {
+    method: "POST",
+    body: JSON.stringify({ before_scan_id: beforeScanId, after_scan_id: afterScanId })
+  });
+}
+
+export async function getProjectSecurityImprovement(projectId: string) {
+  return fetchJson(`/projects/${projectId}/security-improvement`);
 }
 
 // ---------------------------------------------------------
@@ -219,9 +264,37 @@ export async function getDetectionRules() {
   return fetchJson(`/settings/detection-rules`);
 }
 
-export async function updateDetectionRule(ruleId: string, enabled: boolean) {
+export async function getDetectionRule(ruleId: string) {
+  return fetchJson(`/settings/detection-rules/${ruleId}`);
+}
+
+export async function updateDetectionRule(ruleId: string, payload: any) {
   return fetchJson(`/settings/detection-rules/${ruleId}`, {
     method: "PUT",
-    body: JSON.stringify({ enabled })
+    body: JSON.stringify(payload)
   });
+}
+
+export async function resetDetectionRule(ruleId: string) {
+  return fetchJson(`/settings/detection-rules/${ruleId}/reset`, {
+    method: "POST"
+  });
+}
+
+// ---------------------------------------------------------
+// AI Investigation Summaries
+// ---------------------------------------------------------
+export async function getProjectAISummaries(projectId: string) {
+  return fetchJson(`/projects/${projectId}/ai-summaries`);
+}
+
+export async function generateProjectAISummary(projectId: string, payload: any) {
+  return fetchJson(`/projects/${projectId}/ai-summaries`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function getProjectAISummary(projectId: string, summaryId: string) {
+  return fetchJson(`/projects/${projectId}/ai-summaries/${summaryId}`);
 }

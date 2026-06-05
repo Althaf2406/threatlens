@@ -43,12 +43,18 @@ class SyntheticLab:
     }
 
     @staticmethod
-    def generate_events(project_id: str, scenario_id: str) -> List[Dict[str, Any]]:
+    def generate_events(db: Any, project_id: str, scenario_id: str) -> List[Dict[str, Any]]:
         """
         Generate synthetic events for a given scenario.
         No real network requests or attacks are performed.
         """
         if scenario_id not in SyntheticLab.SCENARIOS:
+            return []
+
+        from app.models.detection_rule import DetectionRule
+        rule = db.query(DetectionRule).filter(DetectionRule.key == scenario_id).first()
+        if not rule or not rule.enabled:
+            # Only generate events if the corresponding rule is enabled
             return []
 
         scenario = SyntheticLab.SCENARIOS[scenario_id]

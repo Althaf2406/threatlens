@@ -8,5 +8,6 @@ from app.models.event import Event
 from app.models.graph import GraphNode, GraphEdge
 from app.models.remediation import RemediationTask
 from app.models.standard import StandardMapping
+from app.models.ai_summary import AISummary
 from app.models.report import Report
 from app.models.detection_rule import DetectionRule

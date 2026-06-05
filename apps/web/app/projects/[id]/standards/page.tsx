@@ -6,12 +6,19 @@ import { getProject, getProjectStandards } from "@/lib/api";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import EmptyState from "@/components/EmptyState";
+type StandardMapping = {
+  id: string;
+  framework: string;
+  control: string;
+  description: string;
+  findingId: string;
+};
 
 export default function StandardsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = use(params);
   
   const [project, setProject] = useState<any>(null);
-  const [standards, setStandards] = useState<any[]>([]);
+  const [standards, setStandards] = useState<StandardMapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,13 +62,13 @@ export default function StandardsPage({ params }: { params: Promise<{ id: string
   }
 
   // Group standards by framework
-  const groupedStandards = standards.reduce((acc, curr) => {
+  const groupedStandards = standards.reduce<Record<string, StandardMapping[]>>((acc, curr) => {
     if (!acc[curr.framework]) {
       acc[curr.framework] = [];
     }
     acc[curr.framework].push(curr);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {});
 
   return (
     <ProjectShell

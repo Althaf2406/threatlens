@@ -102,9 +102,37 @@ def seed():
         report_1 = Report(id="rep-001", project_id=proj_1.id, title="Executive Summary Q3", type="Executive", summary="Overall posture is improving.")
         db.add_all([report_1])
 
+        # 10.5. Scans (History)
+        from app.models.scan import Scan
+        from datetime import datetime, timedelta
+        
+        now = datetime.utcnow()
+        scan_1 = Scan(id="scan-001", project_id=proj_1.id, asset_id=asset_1.id, scan_type="Passive", status="completed", summary="Initial scan.", posture_score=60, total_findings=5, high_findings=3, medium_findings=1, low_findings=1, fixed_findings=0, created_at=now - timedelta(days=14), started_at=now - timedelta(days=14), finished_at=now - timedelta(days=14))
+        scan_2 = Scan(id="scan-002", project_id=proj_1.id, asset_id=asset_1.id, scan_type="Passive", status="completed", summary="After first remediation.", posture_score=70, total_findings=3, high_findings=1, medium_findings=1, low_findings=1, fixed_findings=2, created_at=now - timedelta(days=7), started_at=now - timedelta(days=7), finished_at=now - timedelta(days=7))
+        scan_3 = Scan(id="scan-003", project_id=proj_1.id, asset_id=asset_1.id, scan_type="Passive", status="completed", summary="Latest posture check.", posture_score=76, total_findings=2, high_findings=1, medium_findings=1, low_findings=0, fixed_findings=3, created_at=now, started_at=now, finished_at=now)
+        
+        db.add_all([scan_1, scan_2, scan_3])
+        
+        finding_1.scan_id = scan_3.id
+        finding_2.scan_id = scan_3.id
+
         # 11. Detection Rules
-        rule_1 = DetectionRule(id="rule-001", name="Multiple Failed Logins", category="Authentication", enabled=True, threshold=5)
-        db.add_all([rule_1])
+        import json
+        rules_data = [
+            {"id": "rule-001", "name": "Missing HSTS Header", "key": "missing_hsts_header", "category": "passive_check", "severity": "Medium", "confidence_base": "High", "threshold_json": json.dumps({"required_header": "Strict-Transport-Security"})},
+            {"id": "rule-002", "name": "Missing Content Security Policy", "key": "missing_content_security_policy", "category": "passive_check", "severity": "Low", "confidence_base": "High", "threshold_json": None},
+            {"id": "rule-003", "name": "Insecure Cookie Flags", "key": "insecure_cookie_flags", "category": "passive_check", "severity": "High", "confidence_base": "High", "threshold_json": None},
+            {"id": "rule-004", "name": "Permissive CORS Configuration", "key": "permissive_cors_configuration", "category": "passive_check", "severity": "High", "confidence_base": "Medium", "threshold_json": None},
+            {"id": "rule-005", "name": "Failed Login Spike", "key": "failed_login_spike", "category": "auth_anomaly", "severity": "Medium", "confidence_base": "Medium", "threshold_json": json.dumps({"max_failed_attempts": 5, "window_minutes": 10})},
+            {"id": "rule-006", "name": "Impossible Travel", "key": "impossible_travel", "category": "auth_anomaly", "severity": "High", "confidence_base": "High", "threshold_json": json.dumps({"max_minutes_between_countries": 30})},
+            {"id": "rule-007", "name": "Token Reuse", "key": "token_reuse", "category": "session_anomaly", "severity": "Critical", "confidence_base": "High", "threshold_json": json.dumps({"different_ip_threshold": 2})},
+            {"id": "rule-008", "name": "New Device Admin Action", "key": "new_device_admin_action", "category": "session_anomaly", "severity": "High", "confidence_base": "High", "threshold_json": None},
+            {"id": "rule-009", "name": "Suspicious Data Export", "key": "suspicious_data_export", "category": "data_activity", "severity": "High", "confidence_base": "Medium", "threshold_json": None},
+            {"id": "rule-010", "name": "Insufficient Evidence Guardrail", "key": "insufficient_evidence_guardrail", "category": "guardrail", "severity": "Low", "confidence_base": "Low", "threshold_json": json.dumps({"minimum_evidence_count": 1})}
+        ]
+        
+        for rule in rules_data:
+            db.add(DetectionRule(**rule))
 
         db.commit()
         print("Database seeded successfully with auth data!")

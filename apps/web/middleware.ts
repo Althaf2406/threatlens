@@ -12,8 +12,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (token && (pathname === "/login" || pathname === "/register" || pathname === "/")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Removed redirect on /login to prevent infinite loop when token is invalid
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL(token ? "/dashboard" : "/login", request.url));
   }
 
   return NextResponse.next();
