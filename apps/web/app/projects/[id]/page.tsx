@@ -127,7 +127,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div data-tour="project-overview-summary" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
           <p className="text-sm text-slate-400">Posture Score</p>
           <p className="mt-3 text-3xl font-bold text-white">{project.postureScore || 0}</p>

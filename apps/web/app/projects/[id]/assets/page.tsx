@@ -70,6 +70,7 @@ export default function AssetsPage({ params }: { params: Promise<{ id: string }>
         <Link
           href={`/projects/${projectId}/assets/new`}
           className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+          data-tour="add-asset-button"
         >
           Add Asset
         </Link>
@@ -94,7 +95,7 @@ export default function AssetsPage({ params }: { params: Promise<{ id: string }>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/70 overflow-hidden">
+      <div data-tour="assets-list" className="rounded-2xl border border-slate-800 bg-slate-900/70 overflow-hidden">
         {assets.length === 0 ? (
           <div className="p-8 text-center text-slate-400">
             No assets yet. Add a website, API endpoint, repository, or demo target to start defensive analysis.

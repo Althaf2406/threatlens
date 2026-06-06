@@ -101,6 +101,25 @@ export async function getCurrentUser() {
   return fetchJson("/auth/me");
 }
 
+export async function updateOnboardingProgress(step: string) {
+  return fetchJson("/auth/onboarding/progress", {
+    method: "PATCH",
+    body: JSON.stringify({ step }),
+  });
+}
+
+export async function completeOnboarding() {
+  return fetchJson("/auth/onboarding/complete", {
+    method: "POST",
+  });
+}
+
+export async function resetOnboarding() {
+  return fetchJson("/auth/onboarding/reset", {
+    method: "POST",
+  });
+}
+
 // ---------------------------------------------------------
 // Projects
 // ---------------------------------------------------------

@@ -177,7 +177,7 @@ export default function FindingDetailPage({
         </div>
 
         {/* Evidence Section */}
-        <div className="mt-10">
+        <div data-tour="evidence-section" className="mt-10">
           <h3 className="text-lg font-semibold text-white">Evidence & Telemetry</h3>
           <div className="mt-4 space-y-4">
             {(finding.evidence || finding.evidenceIds || []).length === 0 ? (

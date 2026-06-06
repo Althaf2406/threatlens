@@ -52,6 +52,9 @@ Selamat datang di direktori dokumentasi teknis fitur ThreatLens. Halaman ini ber
 16. **[16. Settings & System Administration](16-settings-and-admin.md)**
     Mendokumentasikan konfigurasi global sistem, pengelolaan standar keamanan, pembatasan kuota, serta batasan akses admin-only.
 
+17. **[17. Interactive Guided Onboarding Tour](17-guided-onboarding.md)**
+    Menyediakan panduan interaktif step-by-step untuk membantu pengguna baru memahami workflow defensif di ThreatLens.
+
 ---
 
 ## Prinsip Desain ThreatLens

@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
 from sqlalchemy.orm import Session
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.auth import UserLogin, UserRegister, Token
-from app.schemas.user import User as UserSchema
+from app.schemas.user import User as UserSchema, OnboardingProgressUpdate
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.core.config import settings
 
@@ -60,7 +60,18 @@ def login(user_in: UserLogin, response: Response, db: Session = Depends(get_db))
         path="/"
     )
     
-    return {"msg": "Login successful", "user": {"id": user.id, "name": user.name, "email": user.email, "role": user.role}}
+    return {
+        "msg": "Login successful",
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "role": user.role,
+            "onboarding_completed": user.onboarding_completed,
+            "onboarding_completed_at": user.onboarding_completed_at,
+            "onboarding_step": user.onboarding_step
+        }
+    }
 
 @router.post("/logout")
 def logout(response: Response):
@@ -76,4 +87,42 @@ from app.dependencies.auth import get_current_user
 
 @router.get("/me", response_model=UserSchema)
 def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.patch("/onboarding/progress", response_model=UserSchema)
+def update_onboarding_progress(
+    payload: OnboardingProgressUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    current_user.onboarding_step = payload.step
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.post("/onboarding/complete", response_model=UserSchema)
+def complete_onboarding(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    current_user.onboarding_completed = True
+    current_user.onboarding_completed_at = datetime.now(timezone.utc)
+    current_user.onboarding_step = "completed"
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.post("/onboarding/reset", response_model=UserSchema)
+def reset_onboarding(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    current_user.onboarding_completed = False
+    current_user.onboarding_completed_at = None
+    current_user.onboarding_step = None
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
     return current_user

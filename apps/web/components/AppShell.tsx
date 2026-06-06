@@ -50,7 +50,12 @@ export function AppShell({ children, title, subtitle }: AppShellProps) {
               : "block rounded-xl px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-slate-900 hover:text-white";
 
             return (
-              <Link key={item.href} href={item.href} className={linkClassName}>
+              <Link 
+                key={item.href} 
+                href={item.href} 
+                className={linkClassName}
+                data-tour={item.name === "Projects" ? "nav-projects" : undefined}
+              >
                 {item.name}
               </Link>
             );

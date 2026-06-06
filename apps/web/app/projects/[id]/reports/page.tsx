@@ -99,7 +99,7 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
 
       <div className="grid gap-6 xl:grid-cols-3">
         {/* Generator Form */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 xl:col-span-1 h-fit">
+        <div data-tour="report-generator" className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 xl:col-span-1 h-fit">
           <h3 className="text-lg font-semibold text-white">Generate Report</h3>
           <p className="mt-2 text-sm text-slate-400">
             Create a new point-in-time snapshot of the project's security posture.

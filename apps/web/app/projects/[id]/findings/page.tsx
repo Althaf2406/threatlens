@@ -104,7 +104,7 @@ export default function FindingsPage({ params }: { params: Promise<{ id: string 
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div data-tour="findings-list" className="grid gap-4">
         {filteredFindings.length === 0 ? (
           <EmptyState 
             title="No findings" 

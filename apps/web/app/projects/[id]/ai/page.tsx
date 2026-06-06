@@ -105,7 +105,7 @@ export default function AIInvestigationPage({ params }: { params: Promise<{ id: 
       subtitle="AI-driven investigation summaries based on confirmed evidence."
       tokenUsed={project.tokenUsed}
     >
-      <div className="grid gap-6 lg:grid-cols-3 mb-8">
+      <div data-tour="ai-investigator-panel" className="grid gap-6 lg:grid-cols-3 mb-8">
         <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 lg:col-span-1">
           <h3 className="text-xl font-semibold text-white mb-4">Generate Project Summary</h3>
           <p className="text-sm text-slate-400 mb-6">

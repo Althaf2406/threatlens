@@ -8,6 +8,9 @@ export interface User {
   email: string;
   role: string;
   planName: string;
+  onboardingCompleted: boolean;
+  onboardingCompletedAt?: string | null;
+  onboardingStep?: string | null;
 }
 
 export function useAuth() {

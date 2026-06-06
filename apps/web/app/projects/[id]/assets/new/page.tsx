@@ -165,7 +165,7 @@ export default function NewAssetPage({ params }: { params: Promise<{ id: string 
                 />
               </div>
 
-              <div className="mt-6 rounded-xl border border-blue-900/50 bg-blue-950/20 p-4">
+              <div data-tour="ownership-confirmation" className="mt-6 rounded-xl border border-blue-900/50 bg-blue-950/20 p-4">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <div className="flex h-5 items-center">
                     <input

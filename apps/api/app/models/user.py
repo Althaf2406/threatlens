@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Column, String, Integer, DateTime, Boolean
 from sqlalchemy.sql import func
 from app.db.base import Base
 
@@ -13,4 +13,7 @@ class User(Base):
     plan_name = Column(String, default="free")
     project_limit = Column(Integer, default=3)
     token_limit = Column(Integer, default=1000)
+    onboarding_completed = Column(Boolean, default=False)
+    onboarding_completed_at = Column(DateTime(timezone=True), nullable=True)
+    onboarding_step = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

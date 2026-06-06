@@ -56,6 +56,7 @@ export default async function ProjectsPage() {
         <Link
           href="/projects/new"
           className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-500"
+          data-tour="create-project-button"
         >
           Create Project
         </Link>
@@ -67,7 +68,7 @@ export default async function ProjectsPage() {
           message="Create your first project to start investigating." 
         />
       ) : (
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div data-tour="projects-list" className="grid gap-4 xl:grid-cols-3">
           {projects.map((project: any) => (
             <Link
               key={project.id}

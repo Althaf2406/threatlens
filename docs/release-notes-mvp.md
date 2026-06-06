@@ -15,6 +15,7 @@ We are incredibly excited to announce the Minimum Viable Product (MVP) release o
 - **AI Investigator**: A defensive AI summary generator that contextualizes findings without suggesting offensive exploits.
 - **Standards Mapping**: Built-in mapping to recognized frameworks (like OWASP) with versioning support.
 - **Report Generation**: Export your findings and scan history into structured executive and technical reports.
+- **Interactive Guided Onboarding Tour**: A 14-step guided walk-through that automatically introduces new users to the ThreatLens dashboard, assets, scanning, findings, AI insights, and reports dynamically across page routes.
 
 ### ⚠️ Known Limitations
 As an MVP, ThreatLens has some architectural boundaries designed for safety and speed of development:
