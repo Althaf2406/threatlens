@@ -8,6 +8,8 @@ export interface User {
   email: string;
   role: string;
   planName: string;
+  projectLimit: number;
+  tokenLimit: number;
   onboardingCompleted: boolean;
   onboardingCompletedAt?: string | null;
   onboardingStep?: string | null;

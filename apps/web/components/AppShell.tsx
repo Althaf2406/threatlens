@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { UserMenu } from "./UserMenu";
+import { useAuth } from "@/hooks/useAuth";
 
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard" },
@@ -19,6 +21,33 @@ type AppShellProps = {
 
 export function AppShell({ children, title, subtitle }: AppShellProps) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const [projectsCount, setProjectsCount] = useState(0);
+  const [tokensUsed, setTokensUsed] = useState(0);
+
+  useEffect(() => {
+    async function loadUsage() {
+      try {
+        const { getProjects } = await import("@/lib/api");
+        const projectsData = await getProjects();
+        setProjectsCount(projectsData.length);
+        const used = projectsData.reduce((acc: number, p: any) => acc + (p.tokenUsed || 0), 0);
+        setTokensUsed(used);
+      } catch (e) {
+        console.error("Failed to load sidebar usage:", e);
+      }
+    }
+    if (user) {
+      loadUsage();
+    }
+  }, [user]);
+
+  const formatTokens = (val: number) => {
+    if (val >= 1000) {
+      return (val / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    }
+    return val.toString();
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -36,9 +65,15 @@ export function AppShell({ children, title, subtitle }: AppShellProps) {
           <p className="text-xs uppercase tracking-wide text-slate-500">
             Usage
           </p>
-          <p className="mt-2 text-sm text-white">Projects: 3 / 5</p>
-          <p className="mt-1 text-sm text-white">Tokens: 12.4k / 50k</p>
-          <p className="mt-1 text-xs text-blue-400">Plan: Free Student</p>
+          <p className="mt-2 text-sm text-white">
+            Projects: {projectsCount} / {user?.projectLimit || 3}
+          </p>
+          <p className="mt-1 text-sm text-white">
+            Tokens: {formatTokens(tokensUsed)} / {formatTokens(user?.tokenLimit || 1000)}
+          </p>
+          <p className="mt-1 text-xs text-blue-400">
+            Plan: {user ? user.planName.charAt(0).toUpperCase() + user.planName.slice(1) : "Free"}
+          </p>
         </div>
 
         <nav className="mt-8 space-y-2">
