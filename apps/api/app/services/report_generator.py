@@ -29,7 +29,7 @@ class ReportGenerator:
             
         summary += "\nNote: All findings are based strictly on active defensive detection rules. "
         summary += "Rules can be managed by Administrators in the Settings console.\n"
-        summary += "Disclaimer: This report is not a formal compliance certification. Standards mapping is guidance for remediation and investigation."
+        summary += "Disclaimer: This summary is defensive-only. No offensive payloads, credentials, exploit instructions, brute force steps, or authentication bypass guidance are generated. This report is for remediation and learning, not formal compliance certification."
         
         return {
             "id": f"rep-{uuid.uuid4().hex[:8]}",

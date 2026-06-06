@@ -55,6 +55,9 @@ Selamat datang di direktori dokumentasi teknis fitur ThreatLens. Halaman ini ber
 17. **[17. Interactive Guided Onboarding Tour](17-guided-onboarding.md)**
     Menyediakan panduan interaktif step-by-step untuk membantu pengguna baru memahami workflow defensif di ThreatLens.
 
+18. **[18. Pricing & Usage Guardrails](18-pricing-and-usage-guardrails/feature.md)**
+    Mendokumentasikan batasan paket Free vs Pro, batas project, kuota token AI, serta pencegahan biaya tidak terduga menggunakan AI lokal/template.
+
 ---
 
 ## Prinsip Desain ThreatLens

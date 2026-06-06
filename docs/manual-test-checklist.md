@@ -36,3 +36,12 @@ Use this checklist to perform regression testing before deploying or demonstrati
 - [ ] **Admin Access**: Log in as `admin@threatlens.local`. Navigate to `/settings`.
 - [ ] **Detection Rules**: Verify admins can toggle and edit threshold JSONs.
 - [ ] **Standards Import**: Verify admins can import JSON standards and activate specific framework versions.
+
+## 8. Pricing & Usage Guardrails
+- [ ] **Pricing Plan**: Verify `/settings` displays correct Free or Pro plan limits.
+- [ ] **Project Limit**: Verify Free plan cannot create more than 3 projects.
+- [ ] **Token Usage**: Verify generating an AI summary increments token usage by 100.
+- [ ] **Cost Preview**: Verify the Cost Preview dialog opens before generating an AI summary or report.
+- [ ] **AI Mode Fallback**: Verify default mode is `template_local` and works even if no API key is present.
+- [ ] **Cached Summary**: Verify reloading a finding with a previously generated AI summary does not consume additional tokens.
+- [ ] **Report Disclaimer**: Verify generating a report displays the updated defensive-only disclaimer.

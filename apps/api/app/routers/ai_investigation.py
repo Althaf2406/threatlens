@@ -32,8 +32,23 @@ def create_ai_summary(
 ):
     get_owned_project_or_404(db, project_id, current_user)
     
+    # Determine cost based on request
+    cost = 100 if request.finding_id else 250
+    
+    # Check tokens
+    if current_user.token_used + cost > current_user.token_limit:
+        raise HTTPException(status_code=403, detail="Not enough AI tokens. You can use local template mode or reduce report scope.")
+    
     try:
         summary = generate_summary(db, project_id, request)
+        # Deduct tokens
+        current_user.token_used += cost
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if project:
+            if not project.token_used:
+                project.token_used = 0
+            project.token_used += cost
+        db.commit()
         return summary
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

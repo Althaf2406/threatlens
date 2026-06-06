@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
-import { getUsageSettings, updateSettings, getDetectionRules, updateDetectionRule, resetDetectionRule, getCurrentUser, getSecurityStandards, importSecurityStandards, activateSecurityStandard } from "@/lib/api";
+import { getUsageSettings, updateSettings, getDetectionRules, updateDetectionRule, resetDetectionRule, getCurrentUser, getSecurityStandards, importSecurityStandards, activateSecurityStandard, updateAiMode } from "@/lib/api";
+import { PLANS } from "@/lib/plans";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 
@@ -16,6 +17,7 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
+  const [aiModeSaving, setAiModeSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [activeTab, setActiveTab] = useState("general");
 
@@ -181,6 +183,18 @@ export default function SettingsPage() {
             className={`w-full text-left px-4 py-3 rounded-xl font-medium transition ${activeTab === "standards" ? "bg-slate-800 text-white" : "hover:bg-slate-800/50 text-slate-400"}`}
           >
             Security Standards
+          </button>
+          <button 
+            onClick={() => setActiveTab("plans_usage")}
+            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition ${activeTab === "plans_usage" ? "bg-slate-800 text-white" : "hover:bg-slate-800/50 text-slate-400"}`}
+          >
+            Plans & Usage
+          </button>
+          <button 
+            onClick={() => setActiveTab("ai_guardrails")}
+            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition ${activeTab === "ai_guardrails" ? "bg-slate-800 text-white" : "hover:bg-slate-800/50 text-slate-400"}`}
+          >
+            AI Provider & Guardrails
           </button>
           <button className="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-800/50 text-slate-400 font-medium transition">
             API Keys & Integrations
@@ -442,6 +456,130 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === "plans_usage" && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 md:p-8">
+              <h3 className="text-xl font-semibold text-white mb-2">Plans & Usage</h3>
+              <p className="text-sm text-slate-400 mb-6">View your current usage and explore available plans.</p>
+              
+              <div className="mb-8 rounded-xl border border-slate-800 bg-slate-950 p-6">
+                <h4 className="font-semibold text-white mb-4">Current Usage</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">Projects</p>
+                    <p className="text-xl font-bold text-white">{settings?.projectLimit ? (settings.projectLimit > 10 ? 'Unlimited' : `${Math.min(settings.projectLimit, 10)} / ${settings.projectLimit}`) : "0 / 3"}</p>
+                    <p className="text-xs text-blue-400 mt-1 uppercase tracking-wider">{settings?.planName || "free"} Plan</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500 mb-1">AI Tokens</p>
+                    <p className="text-xl font-bold text-white">{settings?.tokenUsed || 0} / {settings?.tokenLimit || 1000}</p>
+                    <div className="mt-2 h-1.5 w-full rounded-full bg-slate-800">
+                      <div 
+                        className={`h-1.5 rounded-full ${
+                          ((settings?.tokenUsed || 0) / (settings?.tokenLimit || 1000)) > 0.8 ? "bg-red-500" : "bg-blue-500"
+                        }`} 
+                        style={{ width: `${Math.min(((settings?.tokenUsed || 0) / (settings?.tokenLimit || 1000)) * 100, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <h4 className="font-semibold text-white mb-4">Available Plans</h4>
+              <div className="grid gap-4 md:grid-cols-3">
+                {Object.values(PLANS).map((plan) => (
+                  <div key={plan.id} className={`rounded-xl border p-5 flex flex-col ${settings?.planName === plan.id ? 'border-blue-500 bg-blue-900/10' : 'border-slate-800 bg-slate-950'}`}>
+                    <h5 className="font-bold text-white text-lg">{plan.name}</h5>
+                    <p className="text-xs text-slate-400 mt-1">{plan.bestFor}</p>
+                    <div className="mt-4 mb-4">
+                      <span className="text-2xl font-bold text-white">{plan.price}</span>
+                    </div>
+                    <ul className="space-y-2 mt-auto">
+                      {plan.features.map((feat, idx) => (
+                        <li key={idx} className="text-sm text-slate-300 flex items-start gap-2">
+                          <span className="text-blue-500 mt-0.5">•</span>
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {plan.id === "free" && (
+                      <span className="mt-4 inline-block text-center rounded-lg bg-slate-800 px-3 py-1 text-xs font-medium text-slate-300">Recommended for students</span>
+                    )}
+                    {plan.id === "pro" && (
+                      <span className="mt-4 inline-block text-center rounded-lg border border-blue-500/30 px-3 py-1 text-xs font-medium text-blue-400">Optional upgrade later</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "ai_guardrails" && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 md:p-8">
+              <h3 className="text-xl font-semibold text-white mb-2">AI Provider & Cost Guardrails</h3>
+              <p className="text-sm text-slate-400 mb-6">Manage how AI summaries are generated and enforce safety rules.</p>
+              
+              <div className="mb-8 rounded-xl border border-slate-800 bg-slate-950 p-6">
+                <h4 className="font-semibold text-white mb-4">AI Provider Mode</h4>
+                <div className="space-y-3">
+                  {[
+                    { id: "template_local", name: "Local Template (Default)", desc: "Free, deterministic, safe for MVP." },
+                    { id: "ollama_local", name: "Ollama Local", desc: "Local model, no API cost, depends on laptop specs." },
+                    { id: "lm_studio_local", name: "LM Studio", desc: "Local model via LM Studio server." },
+                    { id: "openai_api", name: "OpenAI API", desc: "Optional paid API. Requires key." },
+                    { id: "gemini_api", name: "Gemini API", desc: "Optional paid API. Requires key." },
+                    { id: "groq_api", name: "Groq API", desc: "Optional fast API. Requires key." }
+                  ].map(mode => (
+                    <label key={mode.id} className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors border ${settings?.aiMode === mode.id ? 'border-blue-500 bg-blue-900/10' : 'border-slate-800 hover:bg-slate-900'}`}>
+                      <input 
+                        type="radio" 
+                        name="aiMode" 
+                        value={mode.id}
+                        checked={settings?.aiMode === mode.id}
+                        onChange={async (e) => {
+                          handleChange(e);
+                          setAiModeSaving(true);
+                          try {
+                            await updateAiMode(e.target.value);
+                            setSuccessMsg("AI Mode updated.");
+                            setTimeout(() => setSuccessMsg(""), 3000);
+                          } catch (err: any) {
+                            alert("Failed to update AI mode: " + err.message);
+                            // Revert on fail
+                            setSettings((prev: any) => ({ ...prev, aiMode: settings?.aiMode }));
+                          } finally {
+                            setAiModeSaving(false);
+                          }
+                        }}
+                        className="mt-1 h-4 w-4 border-slate-700 bg-slate-950 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-white">{mode.name}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{mode.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {aiModeSaving && <p className="text-xs text-blue-400 mt-3">Saving...</p>}
+                {successMsg && <p className="text-xs text-green-400 mt-3">{successMsg}</p>}
+              </div>
+
+              <div className="rounded-xl border border-red-900/30 bg-red-900/10 p-6">
+                <h4 className="font-semibold text-red-400 mb-3 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  Cost & Safety Guardrails
+                </h4>
+                <ul className="space-y-2 text-sm text-slate-300">
+                  <li>• Use local/template mode by default to prevent accidental spending.</li>
+                  <li>• Generated AI summaries are cached to avoid double-charging tokens.</li>
+                  <li>• API keys are never stored in client-side code (use environment variables).</li>
+                  <li>• Never send secrets, passwords, raw tokens, or sensitive logs to AI providers.</li>
+                  <li>• Do not put API keys in frontend. Set provider budget/spend limit outside the app.</li>
+                  <li>• Prefer short prompts and compact evidence.</li>
+                </ul>
+              </div>
             </div>
           )}
         </div>

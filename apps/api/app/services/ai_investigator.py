@@ -56,7 +56,7 @@ def generate_summary(db: Session, project_id: str, request: AISummaryCreateReque
         else:
             unknowns_and_limitations += " Standard mapping guidance is unavailable for this finding."
             
-    safety_boundary = "This summary is defensive-only. No offensive payloads, credentials, or exploit instructions are generated. Mapping is guidance for remediation, not a formal compliance certification."
+    safety_boundary = "This summary is defensive-only. No offensive payloads, credentials, exploit instructions, brute force steps, or authentication bypass guidance are generated. This report is for remediation and learning, not formal compliance certification."
     
     if finding:
         executive_summary = f"Analysis of finding {finding.title} indicates potential risks within the affected components."

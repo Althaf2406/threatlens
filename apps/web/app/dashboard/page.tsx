@@ -73,9 +73,16 @@ export default async function DashboardPage() {
         <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-slate-400">Total Projects</p>
-            <span className="text-xs font-medium text-slate-500">
-              {projects.length} / {usage?.projectLimit || 3} Limit
-            </span>
+            <div className="flex flex-col items-end">
+              <span className="text-xs font-medium text-slate-500">
+                {projects.length} / {usage?.projectLimit || 3} Limit
+              </span>
+              {usage?.planName && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 mt-1">
+                  {usage.planName} Plan
+                </span>
+              )}
+            </div>
           </div>
           <p className="mt-2 text-3xl font-bold text-white">{projects.length}</p>
         </div>
@@ -84,12 +91,25 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-slate-400">Token Usage</p>
             <span className="text-xs font-medium text-slate-500">
-              {usage?.tokenLimit || 1000} Limit
+              {usage?.tokenUsed || 0} / {usage?.tokenLimit || 1000}
             </span>
           </div>
           <p className="mt-2 text-3xl font-bold text-white">
-            {projects.reduce((acc, p) => acc + (p.tokenUsed || 0), 0)}
+            {usage?.tokenUsed || 0}
           </p>
+          <div className="mt-3 h-1.5 w-full rounded-full bg-slate-800">
+            <div 
+              className={`h-1.5 rounded-full ${
+                ((usage?.tokenUsed || 0) / (usage?.tokenLimit || 1000)) > 0.8 
+                ? "bg-red-500" 
+                : "bg-blue-500"
+              }`} 
+              style={{ width: `${Math.min(((usage?.tokenUsed || 0) / (usage?.tokenLimit || 1000)) * 100, 100)}%` }}
+            ></div>
+          </div>
+          {((usage?.tokenUsed || 0) / (usage?.tokenLimit || 1000)) > 0.8 && (
+            <p className="mt-2 text-xs text-red-400">Warning: Token limit approaching.</p>
+          )}
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">

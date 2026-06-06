@@ -15,6 +15,8 @@ class User(UserBase):
     plan_name: str
     project_limit: int
     token_limit: int
+    token_used: int
+    ai_mode: str
     onboarding_completed: bool
     onboarding_completed_at: Optional[datetime] = None
     onboarding_step: Optional[str] = None

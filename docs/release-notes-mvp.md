@@ -16,6 +16,7 @@ We are incredibly excited to announce the Minimum Viable Product (MVP) release o
 - **Standards Mapping**: Built-in mapping to recognized frameworks (like OWASP) with versioning support.
 - **Report Generation**: Export your findings and scan history into structured executive and technical reports.
 - **Interactive Guided Onboarding Tour**: A 14-step guided walk-through that automatically introduces new users to the ThreatLens dashboard, assets, scanning, findings, AI insights, and reports dynamically across page routes.
+- **Pricing & Usage Guardrails**: Student-first Free plan enforcing fair-use project quotas and a token quota system for AI analysis. Features an interactive Cost Preview dialog before generating AI summaries or reports, and defaults to an optional, local-only template AI provider mode to prevent accidental API costs.
 
 ### ⚠️ Known Limitations
 As an MVP, ThreatLens has some architectural boundaries designed for safety and speed of development:

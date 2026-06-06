@@ -65,12 +65,18 @@
     - Log out and log back in as `admin@threatlens.local` / `admin123`.
     - Navigate to **Settings**.
 
-13. **Detection Rules Management**
+13. **Pricing & Usage Guardrails**
+    - Show the **Plans & Usage** tab. Explain the Free Student plan and its limits (3 projects, 1000 tokens).
+    - Show the **AI Provider & Guardrails** tab.
+    - Explain the local/template AI mode: "This prevents accidental API costs by defaulting to safe, deterministic local generation."
+    - Mention the cost preview feature that appears before generating AI summaries or reports.
+
+14. **Detection Rules Management**
     - Show the **Detection Rules** tab. Explain how admins can tune thresholds to reduce false positives globally.
 
-14. **Security Standards Management**
+15. **Security Standards Management**
     - Show the **Security Standards** tab.
     - Demonstrate how new standards can be imported via JSON and specific versions (e.g., OWASP 2021) can be activated or deactivated.
 
-15. **Closing Statement**
+16. **Closing Statement**
     - *Narrator: "ThreatLens delivers high-context security analysis through strict, defensive-only constraints, empowering teams to fix vulnerabilities without the risks associated with automated offensive tools."*

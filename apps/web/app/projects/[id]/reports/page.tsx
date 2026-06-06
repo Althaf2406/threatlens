@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { ProjectShell } from "@/components/ProjectShell";
-import { getProject, getProjectReports, generateProjectReport, getProjectAISummaries, getProjectScans } from "@/lib/api";
+import { getProject, getProjectReports, generateProjectReport, getProjectAISummaries, getProjectScans, getUsageSettings } from "@/lib/api";
 import Link from "next/link";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -15,11 +15,13 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
   const [reports, setReports] = useState<any[]>([]);
   const [aiSummaries, setAiSummaries] = useState<any[]>([]);
   const [scans, setScans] = useState<any[]>([]);
+  const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedReportType, setSelectedReportType] = useState("Executive Summary");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showCostPreview, setShowCostPreview] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedAiSummary, setSelectedAiSummary] = useState<any | null>(null);
 
@@ -28,17 +30,19 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
       setLoading(true);
       setError(null);
       
-      const [projData, reportsData, aiSummariesData, scansData] = await Promise.all([
+      const [projData, reportsData, aiSummariesData, scansData, usageData] = await Promise.all([
         getProject(projectId),
         getProjectReports(projectId),
         getProjectAISummaries(projectId),
-        getProjectScans(projectId)
+        getProjectScans(projectId),
+        getUsageSettings()
       ]);
       
       setProject(projData);
       setReports(reportsData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       setAiSummaries(aiSummariesData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       setScans(scansData);
+      setUsage(usageData);
     } catch (err: any) {
       setError(err.message || "Failed to load reports.");
     } finally {
@@ -50,8 +54,13 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
     loadData();
   }, [projectId]);
 
+  const handleGenerateClick = () => {
+    setShowCostPreview(true);
+  };
+
   const handleGenerate = async () => {
     try {
+      setShowCostPreview(false);
       setIsGenerating(true);
       setSuccessMessage("");
       await generateProjectReport(projectId, selectedReportType);
@@ -59,11 +68,16 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
       setSuccessMessage("Report generated successfully!");
       setTimeout(() => setSuccessMessage(""), 4000);
       
-      const reportsData = await getProjectReports(projectId);
+      // Reload reports and usage
+      const [reportsData, usageData] = await Promise.all([
+        getProjectReports(projectId),
+        getUsageSettings()
+      ]);
       setReports(reportsData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    } catch (err) {
+      setUsage(usageData);
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to generate report.");
+      alert("Failed to generate report: " + err.message);
     } finally {
       setIsGenerating(false);
     }
@@ -93,6 +107,58 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
       subtitle="Generate and view evidence-backed security reports."
       tokenUsed={project.tokenUsed}
     >
+      {showCostPreview && usage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-2">Cost Preview</h3>
+            <p className="text-sm text-slate-400 mb-6">Generating a security report consumes AI tokens.</p>
+            
+            <div className="space-y-4 mb-6">
+              <div className="flex justify-between items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-sm font-medium text-slate-400">AI Mode</span>
+                <span className="text-sm font-bold text-blue-400">{usage.aiMode}</span>
+              </div>
+              <div className="flex justify-between items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-sm font-medium text-slate-400">Tokens Required</span>
+                <span className="text-sm font-bold text-yellow-400">500</span>
+              </div>
+              <div className="flex justify-between items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-sm font-medium text-slate-400">Remaining Tokens Before</span>
+                <span className="text-sm font-bold text-slate-200">{usage.tokenLimit - usage.tokenUsed}</span>
+              </div>
+              <div className="flex justify-between items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-sm font-medium text-slate-400">Remaining Tokens After</span>
+                <span className={`text-sm font-bold ${usage.tokenLimit - usage.tokenUsed - 500 < 0 ? 'text-red-500' : 'text-green-400'}`}>
+                  {usage.tokenLimit - usage.tokenUsed - 500}
+                </span>
+              </div>
+            </div>
+
+            {usage.tokenLimit - usage.tokenUsed - 500 < 0 && (
+              <p className="text-xs text-red-400 mb-4 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                Not enough tokens. You need to upgrade your plan or reduce usage to generate this report.
+              </p>
+            )}
+            
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setShowCostPreview(false)}
+                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleGenerate}
+                disabled={usage.tokenLimit - usage.tokenUsed - 500 < 0}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-50"
+              >
+                Confirm & Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 rounded-xl border border-blue-900/50 bg-blue-900/10 p-4 text-blue-200 text-sm">
         <strong className="text-blue-400">Note:</strong> All claims in the report must be evidence-backed. Unknown or insufficient evidence must be stated explicitly.
       </div>
@@ -119,7 +185,7 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
             </div>
 
             <button 
-              onClick={handleGenerate}
+              onClick={handleGenerateClick}
               disabled={isGenerating}
               className="w-full rounded-xl bg-blue-600 py-3 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-50"
             >

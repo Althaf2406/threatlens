@@ -13,6 +13,8 @@ class User(Base):
     plan_name = Column(String, default="free")
     project_limit = Column(Integer, default=3)
     token_limit = Column(Integer, default=1000)
+    token_used = Column(Integer, default=0)
+    ai_mode = Column(String, default="template_local")
     onboarding_completed = Column(Boolean, default=False)
     onboarding_completed_at = Column(DateTime(timezone=True), nullable=True)
     onboarding_step = Column(String, nullable=True)

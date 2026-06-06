@@ -16,9 +16,39 @@ def get_projects(db: Session = Depends(get_db), current_user: User = Depends(get
         return db.query(Project).all()
     return db.query(Project).filter(Project.user_id == current_user.id).all()
 
+from pydantic import BaseModel
+from typing import Optional
+
+class ProjectCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    environment: Optional[str] = "Development"
+    risk_level: Optional[str] = "Low"
+
 @router.post("/")
-def create_project(current_user: User = Depends(get_current_user)):
-    return {"msg": "Project created"}
+def create_project(project_in: ProjectCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Check project limit
+    current_projects_count = db.query(Project).filter(Project.user_id == current_user.id).count()
+    if current_projects_count >= current_user.project_limit:
+        # Determine plan type for the error message
+        plan_desc = "Free plan supports up to 3 projects." if current_user.plan_name == "free" else "Project limit reached."
+        raise HTTPException(status_code=403, detail=f"Project limit reached for your current plan. {plan_desc}")
+    
+    from datetime import datetime
+    import time
+    new_project = Project(
+        id=f"proj-{int(time.time()*1000)}",
+        user_id=current_user.id,
+        name=project_in.name,
+        environment=project_in.environment,
+        risk_level=project_in.risk_level,
+        posture_score=100
+    )
+    db.add(new_project)
+    db.commit()
+    db.refresh(new_project)
+    
+    return new_project
 
 @router.get("/{project_id}")
 def get_project(project_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

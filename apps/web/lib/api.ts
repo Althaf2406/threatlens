@@ -282,6 +282,17 @@ export async function updateSettings(data: any) {
   return { msg: "Settings updated" };
 }
 
+export async function updateAiMode(aiMode: string) {
+  return fetchJson(`/settings/ai-mode`, {
+    method: "PUT",
+    body: JSON.stringify({ ai_mode: aiMode })
+  });
+}
+
+export async function getPlansSettings() {
+  return fetchJson(`/settings/plans`);
+}
+
 export async function getDetectionRules() {
   return fetchJson(`/settings/detection-rules`);
 }

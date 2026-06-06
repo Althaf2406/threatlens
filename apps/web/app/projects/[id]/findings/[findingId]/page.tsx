@@ -3,7 +3,7 @@
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { ProjectShell } from "@/components/ProjectShell";
-import { getProject, getFindingDetail } from "@/lib/api";
+import { getProject, getFindingDetail, getProjectAISummaries, getUsageSettings, generateProjectAISummary } from "@/lib/api";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 
@@ -16,21 +16,30 @@ export default function FindingDetailPage({
 
   const [project, setProject] = useState<any>(null);
   const [finding, setFinding] = useState<any>(null);
+  const [aiSummaries, setAiSummaries] = useState<any[]>([]);
+  const [usage, setUsage] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showCostPreview, setShowCostPreview] = useState(false);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const [projData, findingData] = await Promise.all([
+      const [projData, findingData, summariesData, usageData] = await Promise.all([
         getProject(projectId),
-        getFindingDetail(projectId, findingId)
+        getFindingDetail(projectId, findingId),
+        getProjectAISummaries(projectId),
+        getUsageSettings()
       ]);
       
       setProject(projData);
       setFinding(findingData);
+      const findingSummaries = summariesData.filter((s: any) => s.findingId === findingId);
+      setAiSummaries(findingSummaries.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      setUsage(usageData);
     } catch (err: any) {
       setError(err.message || "Failed to load finding details.");
     } finally {
@@ -41,6 +50,34 @@ export default function FindingDetailPage({
   useEffect(() => {
     loadData();
   }, [projectId, findingId]);
+
+  const handleGenerateClick = () => {
+    setShowCostPreview(true);
+  };
+
+  const handleGenerate = async () => {
+    try {
+      setShowCostPreview(false);
+      setIsGenerating(true);
+      
+      await generateProjectAISummary(projectId, {
+        finding_id: findingId,
+        summary_type: "Technical Context"
+      });
+      
+      const [summariesData, usageData] = await Promise.all([
+        getProjectAISummaries(projectId),
+        getUsageSettings()
+      ]);
+      const findingSummaries = summariesData.filter((s: any) => s.findingId === findingId);
+      setAiSummaries(findingSummaries.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      setUsage(usageData);
+    } catch (err: any) {
+      alert("Failed to generate AI summary: " + err.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -66,6 +103,58 @@ export default function FindingDetailPage({
       subtitle="Detailed analysis, evidence, and remediation steps."
       tokenUsed={project.tokenUsed}
     >
+      {showCostPreview && usage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-2">Cost Preview</h3>
+            <p className="text-sm text-slate-400 mb-6">Generating an AI Summary consumes tokens.</p>
+            
+            <div className="space-y-4 mb-6">
+              <div className="flex justify-between items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-sm font-medium text-slate-400">AI Mode</span>
+                <span className="text-sm font-bold text-blue-400">{usage.aiMode}</span>
+              </div>
+              <div className="flex justify-between items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-sm font-medium text-slate-400">Tokens Required</span>
+                <span className="text-sm font-bold text-yellow-400">100</span>
+              </div>
+              <div className="flex justify-between items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-sm font-medium text-slate-400">Remaining Tokens Before</span>
+                <span className="text-sm font-bold text-slate-200">{usage.tokenLimit - usage.tokenUsed}</span>
+              </div>
+              <div className="flex justify-between items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-sm font-medium text-slate-400">Remaining Tokens After</span>
+                <span className={`text-sm font-bold ${usage.tokenLimit - usage.tokenUsed - 100 < 0 ? 'text-red-500' : 'text-green-400'}`}>
+                  {usage.tokenLimit - usage.tokenUsed - 100}
+                </span>
+              </div>
+            </div>
+
+            {usage.tokenLimit - usage.tokenUsed - 100 < 0 && (
+              <p className="text-xs text-red-400 mb-4 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                Not enough tokens. You need to upgrade your plan or reduce usage.
+              </p>
+            )}
+            
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setShowCostPreview(false)}
+                className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleGenerate}
+                disabled={usage.tokenLimit - usage.tokenUsed - 100 < 0}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-50"
+              >
+                Confirm & Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
         <Link
           href={`/projects/${projectId}/findings`}
@@ -128,6 +217,52 @@ export default function FindingDetailPage({
           <p className="mt-3 text-slate-300 leading-relaxed">
             {finding.description}
           </p>
+        </div>
+
+        {/* AI Summary Section */}
+        <div className="mt-10 rounded-xl border border-purple-900/50 bg-purple-900/10 p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-white">AI Investigation Summary</h3>
+              <p className="text-sm text-slate-400">Generate an AI summary for this specific finding.</p>
+            </div>
+            <button 
+              onClick={handleGenerateClick}
+              disabled={isGenerating}
+              className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-purple-500 disabled:opacity-50"
+            >
+              {isGenerating ? "Generating..." : "Generate AI Summary"}
+            </button>
+          </div>
+          
+          {aiSummaries.length > 0 ? (
+            <div className="space-y-4">
+              {aiSummaries.map((summary) => (
+                <div key={summary.id} className="rounded-xl border border-slate-800 bg-slate-950 p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="font-semibold text-white">Generated: {new Date(summary.createdAt).toLocaleString()}</h4>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      summary.claimStatus === 'evidence_backed' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'
+                    }`}>
+                      {summary.claimStatus.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="text-sm text-slate-300 space-y-4">
+                    <div>
+                      <strong className="text-slate-400">Executive Summary:</strong>
+                      <p className="mt-1">{summary.executiveSummary}</p>
+                    </div>
+                    <div>
+                      <strong className="text-slate-400">Technical Context:</strong>
+                      <p className="mt-1 whitespace-pre-wrap">{summary.technicalContext}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 mt-4">No AI summaries generated for this finding yet.</p>
+          )}
         </div>
 
         {finding.ruleKey && (

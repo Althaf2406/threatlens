@@ -20,9 +20,52 @@ from typing import List
 
 router = APIRouter()
 
+from pydantic import BaseModel
+class AIModeUpdate(BaseModel):
+    ai_mode: str
+
 @router.get("/usage")
 def get_usage(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return {"project_limit": current_user.project_limit, "token_limit": current_user.token_limit}
+    return {
+        "plan_name": current_user.plan_name,
+        "project_limit": current_user.project_limit,
+        "token_limit": current_user.token_limit,
+        "token_used": current_user.token_used,
+        "ai_mode": current_user.ai_mode,
+    }
+
+@router.put("/ai-mode")
+def update_ai_mode(payload: AIModeUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    valid_modes = ["template_local", "ollama_local", "lm_studio_local", "openai_api", "gemini_api", "groq_api"]
+    if payload.ai_mode not in valid_modes:
+        raise HTTPException(status_code=400, detail="Invalid AI mode")
+    current_user.ai_mode = payload.ai_mode
+    db.commit()
+    db.refresh(current_user)
+    return {"message": "AI mode updated successfully", "ai_mode": current_user.ai_mode}
+
+@router.get("/plans")
+def get_plans():
+    return {
+        "FREE_PLAN": {
+            "name": "Free Student",
+            "projectLimit": 3,
+            "tokenLimit": 1000,
+            "price": "Rp0"
+        },
+        "PRO_PLAN": {
+            "name": "Pro",
+            "projectLimit": 5,
+            "tokenLimit": 10000,
+            "price": "optional / later"
+        },
+        "ADMIN_PLAN": {
+            "name": "Admin",
+            "projectLimit": 10,
+            "tokenLimit": 50000,
+            "price": "custom"
+        }
+    }
 
 @router.get("/detection-rules", response_model=List[DetectionRuleResponse])
 def get_detection_rules(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
