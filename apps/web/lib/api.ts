@@ -65,10 +65,14 @@ export async function fetchJson(endpoint: string, options: RequestInit = {}) {
       let errorDetail = errText;
       try {
         const errJson = JSON.parse(errText);
-        errorDetail = errJson.detail || errText;
+        if (Array.isArray(errJson.detail)) {
+          errorDetail = errJson.detail.map((e: any) => e.msg).join(", ");
+        } else {
+          errorDetail = errJson.detail || errText;
+        }
       } catch (e) { }
 
-      throw new Error(errorDetail || `API error: ${response.status} ${response.statusText}`);
+      throw new Error(typeof errorDetail === "string" ? errorDetail : JSON.stringify(errorDetail));
     }
 
     const data = await response.json();

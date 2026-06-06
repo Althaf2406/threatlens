@@ -187,12 +187,24 @@ export default function FindingDetailPage({
                 <div key={ev.id || idx} className="rounded-xl border border-slate-800 bg-slate-950 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs font-medium uppercase tracking-wider text-blue-400">
-                      {ev.type || 'Log'}
+                      {ev.source || ev.type || 'Log'}
                     </span>
                     <span className="text-xs text-slate-500">{new Date(ev.timestamp || finding.createdAt).toLocaleString()}</span>
                   </div>
                   <pre className="overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-300">
-                    <code>{typeof ev === 'string' ? ev : JSON.stringify(ev.data || ev, null, 2)}</code>
+                    <code>
+                      {(() => {
+                        const content = ev.detail !== undefined ? ev.detail : (ev.data !== undefined ? ev.data : ev);
+                        if (typeof content === 'string') {
+                          try {
+                            return JSON.stringify(JSON.parse(content), null, 2);
+                          } catch {
+                            return content;
+                          }
+                        }
+                        return JSON.stringify(content, null, 2);
+                      })()}
+                    </code>
                   </pre>
                 </div>
               ))

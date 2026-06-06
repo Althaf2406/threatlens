@@ -76,7 +76,9 @@ def seed():
 
         # 5. Evidence
         evidence_1 = Evidence(id="evd-001", finding_id=finding_1.id, source="Passive Scan", detail="curl -I https://demo.threatlens.local -> Missing Strict-Transport-Security")
-        db.add_all([evidence_1])
+        evidence_2 = Evidence(id="evd-002", finding_id=finding_2.id, source="Passive Scan", detail="Set-Cookie: session_id=12345; Path=/ (Missing Secure & HttpOnly flags)")
+        evidence_3 = Evidence(id="evd-003", finding_id=finding_3.id, source="Secret Scanner", detail="Found pattern matching 'admin_token = ...' in source file config.py:12")
+        db.add_all([evidence_1, evidence_2, evidence_3])
 
         # 6. Events
         event_1 = Event(id="evt-001", project_id=proj_1.id, event_type="Failed Login Spike", user_label="unknown", ip_address="192.168.1.100", endpoint="/auth", severity="High", risk_score=85, is_synthetic=True)

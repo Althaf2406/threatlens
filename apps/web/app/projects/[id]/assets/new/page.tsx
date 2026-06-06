@@ -34,7 +34,7 @@ export default function NewAssetPage({ params }: { params: Promise<{ id: string 
       setIsSubmitting(true);
       setError(null);
       
-      const payload = { ...formData };
+      const payload = { ...formData, ownership_confirmed: false };
       
       const asset = await createProjectAsset(projectId, payload);
       router.push(`/projects/${projectId}/assets/${asset.id}`);

@@ -35,8 +35,18 @@ def get_finding(project_id: str, finding_id: str, db: Session = Depends(get_db),
         } for s in standards
     ]
     
-    # Add dummy evidence and remediation if not present for frontend
-    finding_dict["evidence"] = []
+    # Fetch evidence
+    from app.models.evidence import Evidence
+    evidences = db.query(Evidence).filter(Evidence.finding_id == finding.id).all()
+    finding_dict["evidence"] = [
+        {
+            "id": e.id,
+            "source": e.source,
+            "detail": e.detail,
+            "timestamp": e.timestamp.isoformat() if e.timestamp else None
+        } for e in evidences
+    ]
+    
     finding_dict["remediation_tasks"] = []
     
     return finding_dict

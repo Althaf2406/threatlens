@@ -21,7 +21,8 @@ class PassiveChecker:
         findings_data = []
         scan_id = f"scn-{uuid.uuid4().hex[:6]}"
         
-        if asset_type == "Website URL":
+        asset_type_clean = asset_type.lower().replace(" ", "_")
+        if asset_type_clean in ["website_url", "website"]:
             rule = rules.get("missing_hsts_header")
             if rule and rule.enabled:
                 findings_data.append({
@@ -48,7 +49,7 @@ class PassiveChecker:
                     "rule_key": rule.key
                 })
                 
-        elif asset_type == "API Endpoint":
+        elif asset_type_clean in ["api_endpoint", "api"]:
             rule = rules.get("insecure_cookie_flags")
             if rule and rule.enabled:
                 findings_data.append({
@@ -100,6 +101,8 @@ class PassiveChecker:
         )
         db.add(scan)
         
+        from app.models.evidence import Evidence
+        
         db_findings = []
         for f in findings_data:
             db_finding = Finding(
@@ -119,6 +122,21 @@ class PassiveChecker:
             )
             db.add(db_finding)
             db_findings.append(db_finding)
+            
+            # Generate mock evidence
+            ev_detail = {"raw_metadata": "Simulated passive scan response"}
+            if db_finding.rule_key == "missing_hsts_header":
+                ev_detail = {"headers_received": {"Server": "nginx", "Content-Type": "text/html"}, "missing": ["Strict-Transport-Security"]}
+            elif db_finding.rule_key == "insecure_cookie_flags":
+                ev_detail = {"Set-Cookie": "session_id=12345; Path=/"}
+            
+            ev = Evidence(
+                id=f"evd-{uuid.uuid4().hex[:6]}",
+                finding_id=db_finding.id,
+                source="Passive Scanner",
+                detail=json.dumps(ev_detail)
+            )
+            db.add(ev)
             
         # Update project posture score
         project = db.query(Project).filter(Project.id == project_id).first()

@@ -69,6 +69,7 @@ export default function GraphPage({ params }: { params: Promise<{ id: string }> 
   };
 
   const getEdgeLabel = (type: string) => {
+    if (!type) return 'Unknown';
     return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
 

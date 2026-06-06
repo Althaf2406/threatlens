@@ -18,8 +18,9 @@ class AssetBase(BaseModel):
     def validate_value(cls, v, values):
         if 'type' in values:
             if values['type'] in ['website_url', 'api_endpoint']:
-                if not re.match(r'^https?://', v):
-                    raise ValueError('Must be a valid HTTP/HTTPS URL')
+                # Support: http://..., https://..., or domain/IP/host (e.g. api.example.com, localhost:3000)
+                if not re.match(r'^(https?://)?([a-zA-Z0-9.-]+)(:\d+)?(/.*)?$', v):
+                    raise ValueError('Must be a valid URL or domain name')
             if not v or v.strip() == "":
                 raise ValueError("Value cannot be empty")
         return v
