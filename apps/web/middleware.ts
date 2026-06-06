@@ -5,8 +5,8 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("threatlens_access_token")?.value;
   const { pathname } = request.nextUrl;
 
-  const publicPaths = ["/", "/login", "/register"];
-  const isPublicPath = publicPaths.includes(pathname);
+  const publicPaths = ["/", "/login", "/register", "/check-email", "/verify-email"];
+  const isPublicPath = publicPaths.some(path => pathname.startsWith(path) && (pathname === path || path !== "/"));
 
   if (!token && !isPublicPath) {
     return NextResponse.redirect(new URL("/login", request.url));

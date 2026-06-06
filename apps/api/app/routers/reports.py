@@ -23,6 +23,9 @@ def generate_report(project_id: str, req: GenerateReportReq, db: Session = Depen
     from app.models.project import Project
     get_owned_project_or_404(db, project_id, current_user)
     
+    if not current_user.email_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email before generating reports.")
+    
     cost = 500
     if current_user.token_used + cost > current_user.token_limit:
         raise HTTPException(status_code=403, detail="Not enough AI tokens. You can use local template mode or reduce report scope.")

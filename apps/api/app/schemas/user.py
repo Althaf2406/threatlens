@@ -20,6 +20,8 @@ class User(UserBase):
     onboarding_completed: bool
     onboarding_completed_at: Optional[datetime] = None
     onboarding_step: Optional[str] = None
+    email_verified: bool
+    account_status: str
     created_at: datetime
 
     class Config:

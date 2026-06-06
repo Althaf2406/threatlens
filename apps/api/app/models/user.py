@@ -18,4 +18,15 @@ class User(Base):
     onboarding_completed = Column(Boolean, default=False)
     onboarding_completed_at = Column(DateTime(timezone=True), nullable=True)
     onboarding_step = Column(String, nullable=True)
+    
+    # Email Verification & Anti-Abuse
+    email_verified = Column(Boolean, default=False)
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    verification_token_hash = Column(String, nullable=True)
+    verification_token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    verification_sent_at = Column(DateTime(timezone=True), nullable=True)
+    verification_attempt_count = Column(Integer, default=0)
+    resend_verification_count = Column(Integer, default=0)
+    account_status = Column(String, default="pending_verification") # pending_verification, active, suspended, disabled
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())

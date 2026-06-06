@@ -78,6 +78,8 @@ def confirm_ownership(project_id: str, asset_id: str, db: Session = Depends(get_
 
 @router.post("/projects/{project_id}/assets/{asset_id}/passive-check")
 def passive_check(project_id: str, asset_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user.email_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email before running passive checks.")
     get_owned_project_or_404(db, project_id, current_user)
     asset = get_owned_asset_or_404(db, asset_id, current_user)
     if asset.project_id != project_id:

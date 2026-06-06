@@ -45,3 +45,12 @@ Use this checklist to perform regression testing before deploying or demonstrati
 - [ ] **AI Mode Fallback**: Verify default mode is `template_local` and works even if no API key is present.
 - [ ] **Cached Summary**: Verify reloading a finding with a previously generated AI summary does not consume additional tokens.
 - [ ] **Report Disclaimer**: Verify generating a report displays the updated defensive-only disclaimer.
+
+## 9. Email Verification & Anti-Abuse
+- [ ] **Register New User**: Verify it redirects to `/check-email` and the console prints a verification URL.
+- [ ] **Login Before Verify**: Verify unverified users receive a 403 Forbidden on `/login` and are blocked from accessing.
+- [ ] **Verify Email**: Visit the verification URL and verify the account activates successfully.
+- [ ] **Resend Verification**: Verify clicking resend has a cooldown and sends a new token in the console.
+- [ ] **Expired Token Behavior**: Verify accessing an invalid or expired token shows an error state.
+- [ ] **AI Token Feature Blocked**: Verify unverified users cannot bypass UI to consume AI tokens.
+- [ ] **Project Creation Blocked**: Verify unverified users cannot bypass UI to create a project.

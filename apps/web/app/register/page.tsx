@@ -27,7 +27,7 @@ export default function RegisterPage() {
 
     try {
       await registerUser({ name, email, password });
-      router.push("/login");
+      router.push(`/check-email?email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       setError(err.message || "Failed to register. Please try again.");
     } finally {

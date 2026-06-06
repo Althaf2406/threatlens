@@ -32,6 +32,9 @@ def create_ai_summary(
 ):
     get_owned_project_or_404(db, project_id, current_user)
     
+    if not current_user.email_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email before using AI token features.")
+    
     # Determine cost based on request
     cost = 100 if request.finding_id else 250
     

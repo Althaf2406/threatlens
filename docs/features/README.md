@@ -58,6 +58,9 @@ Selamat datang di direktori dokumentasi teknis fitur ThreatLens. Halaman ini ber
 18. **[18. Pricing & Usage Guardrails](18-pricing-and-usage-guardrails/feature.md)**
     Mendokumentasikan batasan paket Free vs Pro, batas project, kuota token AI, serta pencegahan biaya tidak terduga menggunakan AI lokal/template.
 
+19. **[19. Email Verification & Anti-Abuse Account Protection](19-email-verification-and-abuse-prevention/feature.md)**
+    Memverifikasi email pengguna baru untuk mencegah spam dan pendaftaran bot yang menghabiskan token AI.
+
 ---
 
 ## Prinsip Desain ThreatLens

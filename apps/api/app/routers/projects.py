@@ -5,13 +5,13 @@ from app.models.project import Project
 from app.models.user import User
 from app.models.finding import Finding
 from app.models.standard import StandardMapping
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, get_verified_current_user
 from app.dependencies.ownership import get_owned_project_or_404
 
 router = APIRouter()
 
 @router.get("/")
-def get_projects(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_projects(db: Session = Depends(get_db), current_user: User = Depends(get_verified_current_user)):
     if current_user.role in ["admin", "system_admin"]:
         return db.query(Project).all()
     return db.query(Project).filter(Project.user_id == current_user.id).all()
@@ -27,6 +27,9 @@ class ProjectCreate(BaseModel):
 
 @router.post("/")
 def create_project(project_in: ProjectCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user.email_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email before creating projects.")
+    
     # Check project limit
     current_projects_count = db.query(Project).filter(Project.user_id == current_user.id).count()
     if current_projects_count >= current_user.project_limit:

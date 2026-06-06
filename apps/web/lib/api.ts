@@ -89,6 +89,14 @@ export async function registerUser(data: any) {
   return fetchJson("/auth/register", { method: "POST", body: JSON.stringify(data) });
 }
 
+export async function verifyEmail(token: string) {
+  return fetchJson(`/auth/verify-email?token=${token}`);
+}
+
+export async function resendVerification(email: string) {
+  return fetchJson("/auth/resend-verification", { method: "POST", body: JSON.stringify({ email }) });
+}
+
 export async function loginUser(data: any) {
   return fetchJson("/auth/login", { method: "POST", body: JSON.stringify(data) });
 }

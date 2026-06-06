@@ -89,6 +89,13 @@ export default function LoginPage() {
                 <div className="flex">
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-red-400">{error}</h3>
+                    {error.includes("verify your email") && (
+                      <div className="mt-2 text-sm text-red-300">
+                        <Link href={`/check-email?email=${encodeURIComponent(email)}`} className="underline font-medium hover:text-red-200">
+                          Resend verification email
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

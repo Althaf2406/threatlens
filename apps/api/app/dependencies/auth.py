@@ -59,3 +59,13 @@ def get_current_admin_user(
             status_code=status.HTTP_403_FORBIDDEN, detail="The user doesn't have enough privileges"
         )
     return current_user
+
+def get_verified_current_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if not current_user.email_verified or current_user.account_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Please verify your email before accessing ThreatLens."
+        )
+    return current_user

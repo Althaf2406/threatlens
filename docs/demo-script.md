@@ -8,7 +8,8 @@
 ## Part 1: The Practitioner's Workflow (Demo User)
 *Narrator: "We'll start by logging in as a security practitioner handling a specific application environment."*
 
-1. **Login**
+1. **Login & Verification**
+   - *Narrator: "ThreatLens uses email verification to prevent automated account creation and protect student AI quotas."*
    - Navigate to `/login`.
    - Use `demo@threatlens.local` / `password123`.
 

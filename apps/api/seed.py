@@ -29,6 +29,7 @@ def seed():
         print("Seeding database...")
 
         # 1. User
+        from datetime import datetime, timezone
         demo_user = User(
             id="usr-demo",
             name="Demo User",
@@ -37,7 +38,10 @@ def seed():
             role="user",
             plan_name="pro",
             project_limit=5,
-            token_limit=10000
+            token_limit=10000,
+            email_verified=True,
+            email_verified_at=datetime.now(timezone.utc),
+            account_status="active"
         )
         admin_user = User(
             id="usr-admin",
@@ -47,9 +51,24 @@ def seed():
             role="admin",
             plan_name="pro",
             project_limit=10,
-            token_limit=50000
+            token_limit=50000,
+            email_verified=True,
+            email_verified_at=datetime.now(timezone.utc),
+            account_status="active"
         )
-        db.add_all([demo_user, admin_user])
+        unverified_user = User(
+            id="usr-unverified",
+            name="Unverified User",
+            email="unverified@threatlens.local",
+            hashed_password=get_password_hash("password123"),
+            role="user",
+            plan_name="free",
+            project_limit=3,
+            token_limit=0,
+            email_verified=False,
+            account_status="pending_verification"
+        )
+        db.add_all([demo_user, admin_user, unverified_user])
         db.flush()
 
         # 2. Projects

@@ -27,7 +27,14 @@ export function UserMenu() {
             </span>
           </div>
           <div className="ml-3 min-w-0">
-            <p className="truncate text-sm font-medium text-white">{user.name}</p>
+            <p className="truncate text-sm font-medium text-white">
+              {user.name}
+              {(user as any).email_verified === false && (
+                <span className="ml-2 inline-flex items-center rounded-md bg-yellow-400/10 px-1.5 py-0.5 text-xs font-medium text-yellow-500 ring-1 ring-inset ring-yellow-400/20">
+                  Unverified
+                </span>
+              )}
+            </p>
             <p className="truncate text-xs text-slate-400">{user.email}</p>
           </div>
         </div>
