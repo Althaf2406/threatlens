@@ -12,5 +12,6 @@ class RemediationTask(Base):
     status = Column(String, default="open")
     priority = Column(String, default="Medium")
     due_date = Column(DateTime(timezone=True), nullable=True)
+    assignee_id = Column(String, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

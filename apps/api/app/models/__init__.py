@@ -11,3 +11,5 @@ from app.models.standard import StandardMapping
 from app.models.ai_summary import AISummary
 from app.models.report import Report
 from app.models.detection_rule import DetectionRule
+from app.models.api_key import ApiKey
+from app.models.webhook import Webhook

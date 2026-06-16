@@ -65,6 +65,11 @@ def generate_summary(db: Session, project_id: str, request: AISummaryCreateReque
             claim_status = "suspected"
             confidence_explanation = "Medium confidence based on severity level and presence of multiple corresponding indicators."
             impact_blast_radius = "Significant potential blast radius affecting internal systems or data confidentiality if unmitigated."
+            
+        # Simulate generating a code diff patch if one doesn't exist
+        if not finding.suggested_patch:
+            finding.suggested_patch = f"--- a/config.py\n+++ b/config.py\n@@ -1,3 +1,4 @@\n-SECURITY_SETTING=False\n+SECURITY_SETTING=True\n+# Auto-generated fix for {finding.rule_key or 'vulnerability'}"
+            db.add(finding)
     else:
         if len(scans) >= 2:
             latest = scans[0]

@@ -18,4 +18,5 @@ class Finding(Base):
     blast_radius = Column(String, nullable=False)
     status = Column(String, default="Open")
     description = Column(Text, nullable=True)
+    suggested_patch = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.finding import Finding
@@ -50,3 +50,23 @@ def get_finding(project_id: str, finding_id: str, db: Session = Depends(get_db),
     finding_dict["remediation_tasks"] = []
     
     return finding_dict
+
+import json
+from app.services.sarif_parser import parse_sarif_and_save
+
+@router.post("/projects/{project_id}/scans/import/sarif")
+async def import_sarif(project_id: str, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    get_owned_project_or_404(db, project_id, current_user)
+    
+    if not file.filename.endswith(".sarif") and not file.filename.endswith(".json"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Must be .sarif or .json")
+        
+    try:
+        content = await file.read()
+        sarif_data = json.loads(content)
+        findings = parse_sarif_and_save(db, project_id, sarif_data)
+        return {"message": f"Successfully imported {len(findings)} findings."}
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON format.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,0 +1,36 @@
+name: ThreatLens Security Scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  semgrep:
+    name: Run Semgrep and Upload to ThreatLens
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep Scan
+        run: semgrep ci --json -o semgrep.sarif
+        env:
+          SEMGREP_RULES: p/default
+        continue-on-error: true
+
+      - name: Upload to ThreatLens Dashboard
+        run: |
+          curl -X POST "${{ secrets.THREATLENS_API_URL }}/api/v1/ci/upload/sarif" \
+               -H "X-API-Key: ${{ secrets.THREATLENS_API_KEY }}" \
+               -H "accept: application/json" \
+               -F "file=@semgrep.sarif"
