@@ -8,6 +8,13 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./threatlens.db"
     COOKIE_SECURE: bool = False
     FRONTEND_ORIGIN: str = "http://localhost:3000"
+    
+    EMAIL_PROVIDER: str = "console"
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int | None = None
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    EMAIL_FROM: str | None = None
 
     class Config:
         env_file = ".env"

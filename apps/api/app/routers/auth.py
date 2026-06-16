@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime, timezone
 
@@ -15,7 +15,7 @@ from pydantic import BaseModel, EmailStr
 router = APIRouter()
 
 @router.post("/register", response_model=UserSchema)
-def register(user_in: UserRegister, db: Session = Depends(get_db)):
+def register(user_in: UserRegister, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_in.email).first()
     if user:
         raise HTTPException(
@@ -46,7 +46,7 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
     db.refresh(user)
 
     verification_url = EmailVerificationService.create_verification_url(token)
-    EmailService.send_verification_email(user.email, user.name, verification_url)
+    background_tasks.add_task(EmailService.send_verification_email, user.email, user.name, verification_url)
 
     return user
 
@@ -136,7 +136,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     return {"msg": "Email verified successfully. You can now log in."}
 
 @router.post("/resend-verification")
-def resend_verification(payload: ResendVerificationRequest, db: Session = Depends(get_db)):
+def resend_verification(payload: ResendVerificationRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
     generic_msg = "If the account exists and is not verified, a verification email has been sent."
     
@@ -159,7 +159,7 @@ def resend_verification(payload: ResendVerificationRequest, db: Session = Depend
     db.commit()
     
     verification_url = EmailVerificationService.create_verification_url(token)
-    EmailService.send_verification_email(user.email, user.name, verification_url)
+    background_tasks.add_task(EmailService.send_verification_email, user.email, user.name, verification_url)
     
     return {"msg": generic_msg}
 
